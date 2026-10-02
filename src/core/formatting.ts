@@ -106,9 +106,18 @@ export function toggleInline(text:string,selection:SelectionRange,style:string):
   }
   if(!markers)return null;
   const [open,close]=markers;
-  if(content.startsWith(open)&&content.endsWith(close)&&content.length>=open.length+close.length){const inside=content.slice(open.length,-close.length);return replacement(from,to,inside,{anchor:from,head:from+inside.length});}
+  const expectedNodes:Record<string,string>={bold:'StrongEmphasis',italic:'Emphasis',strike:'Strikethrough',sub:'Subscript',sup:'Superscript'};
+  let wholeWrapped=false;
+  if(content.startsWith(open)&&content.endsWith(close)&&content.length>=open.length+close.length){
+    if(expectedNodes[style])markdownLanguage.parser.parse(content).iterate({enter(node){if(node.name===expectedNodes[style]&&node.from===0&&node.to===content.length)wholeWrapped=true;}});
+    else wholeWrapped=!content.slice(open.length,-close.length).includes(close);
+  }
+  if(wholeWrapped){const inside=content.slice(open.length,-close.length);return replacement(from,to,inside,{anchor:from,head:from+inside.length});}
   if(text.slice(Math.max(0,from-open.length),from)===open&&text.slice(to,to+close.length)===close){return replacement(from-open.length,to+close.length,content,{anchor:from-open.length,head:from-open.length+content.length});}
   if(from===to){let range=formattedRange(text,from);const expected:Record<string,string>={bold:'StrongEmphasis',italic:'Emphasis',strike:'Strikethrough',sub:'Subscript',sup:'Superscript'};let node=markdownLanguage.parser.parse(text).resolveInner(from,-1);while(node){if(node.name===expected[style]){range={from:node.from,to:node.to,name:node.name};break;}if(!node.parent)break;node=node.parent;}if(range&&(range.name===expected[style]||text.slice(range.from,range.from+open.length)===open)){const source=text.slice(range.from,range.to);return replacement(range.from,range.to,source.slice(open.length,-close.length),{anchor:Math.max(range.from,from-open.length),head:Math.max(range.from,from-open.length)});}}
+  if(expectedNodes[style]){
+    const removals:TextChange[]=[];markdownLanguage.parser.parse(content).iterate({enter(node){if(node.name==='InlineCode'||node.name==='FencedCode'||node.name==='CodeBlock')return false;if(node.name===expectedNodes[style]){const first=node.node.firstChild,last=node.node.lastChild;if(first&&last&&first.name.endsWith('Mark')&&last.name.endsWith('Mark')){removals.push({from:first.from,to:first.to,insert:''},{from:last.from,to:last.to,insert:''});}}}});if(removals.length)content=applyPlan(content,{changes:removals,selection:{anchor:0,head:0}});
+  }
   return replacement(from,to,open+content+close,{anchor:from+open.length,head:from+open.length+content.length});
 }
 export function clearInline(text:string,selection:SelectionRange):EditPlan {
