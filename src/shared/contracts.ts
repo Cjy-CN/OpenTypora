@@ -39,6 +39,7 @@ export interface FileSearchMatch { path: string; line: number; excerpt: string; 
 export interface ApplicationInfo { version: string; platform: string; userData: string }
 /** Deliberately narrow IPC surface: no arbitrary IPC channel exposed to documents. */
 export interface DesktopBridge {
+  pathForFile?(file: File): string;
   info(): Promise<Result<ApplicationInfo>>;
   open(path?: string): Promise<Result<OpenedFile | null>>;
   save(request: SaveRequest): Promise<Result<SavedFile | null>>;
