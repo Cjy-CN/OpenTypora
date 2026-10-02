@@ -36,6 +36,7 @@
     "markdown-it-sub": "^2.0.0",
     "markdown-it-sup": "^2.0.0",
     "markdown-it-task-lists": "^2.0.0",
+    "mathjax-full": "3.2.2",
     "mermaid": "^11.0.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -59,8 +60,22 @@
   "build": {
     "appId": "org.opentypora.desktop",
     "productName": "OpenTypora",
-    "directories": { "output": "release" },
-    "files": ["dist/**", "dist-electron/**", "package.json"],
-    "win": { "target": "portable", "signAndEditExecutable": false }
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "signAndEditExecutable": false
+    }
+  },
+  "overrides": {
+    "speech-rule-engine": {
+      "@xmldom/xmldom": "0.9.12"
+    }
   }
 }

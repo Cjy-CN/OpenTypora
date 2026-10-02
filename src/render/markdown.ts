@@ -22,7 +22,7 @@ export function assetUrl(url: string, path?: string | null) {
 }
 function equation(source: string, display: boolean, settings: SettingsSnapshot) {
   if(settings['math.htmlRepresentation']==='source') return `<code class="math-source">${escapeHtml(source)}</code>`;
-  try { return katex.renderToString(source, {displayMode:display,throwOnError:false,strict:'ignore',trust:false,output:settings['math.htmlRepresentation']==='mathml'?'mathml':'htmlAndMathml',macros:settings['math.physics']?{'\\ket':'\\left|#1\\right\\rangle','\\bra':'\\left\\langle#1\\right|','\\abs':'\\left|#1\\right|','\\norm':'\\left\\|#1\\right\\|','\\qty':'\\left(#1\\right)'}:undefined}); }
+  try { const html=katex.renderToString(source, {displayMode:display,throwOnError:false,strict:'ignore',trust:false,output:settings['math.htmlRepresentation']==='mathml'?'mathml':'htmlAndMathml',macros:settings['math.physics']?{'\\ket':'\\left|#1\\right\\rangle','\\bra':'\\left\\langle#1\\right|','\\abs':'\\left|#1\\right|','\\norm':'\\left\\|#1\\right\\|','\\qty':'\\left(#1\\right)'}:undefined});return settings['math.htmlRepresentation']==='svg'?`<span class="math-svg" data-math="${escapeHtml(encodeURIComponent(source))}" data-display="${display}">${html}</span>`:html; }
   catch(error) { return `<code class="render-error">${escapeHtml(String(error))}</code>`; }
 }
 function mathPlugin(md: InstanceType<typeof MarkdownIt>, settings: SettingsSnapshot) {
@@ -32,7 +32,7 @@ function mathPlugin(md: InstanceType<typeof MarkdownIt>, settings: SettingsSnaps
     else if(settings['math.latexDelimiters'] && rest.startsWith('\\(')) {opener='\\(';closer='\\)';}
     if(!opener)return false;
     let end=state.src.indexOf(closer,state.pos+opener.length); while(end>0&&state.src[end-1]==='\\')end=state.src.indexOf(closer,end+closer.length);
-    if(end<0)return false; const content=state.src.slice(state.pos+opener.length,end);if(!content.trim()||content.includes('\n'))return false;
+    if(end<0)return false; const content=state.src.slice(state.pos+opener.length,end);if(!content.trim()||content.includes('\n')||(opener==='$'&&(content.trim()!==content||/\d/.test(state.src[end+1]??''))))return false;
     if(!silent){const token=state.push('opentypora_math','math',0);token.content=content;}
     state.pos=end+closer.length;return true;
   });
@@ -78,6 +78,8 @@ export function flowToMermaid(source: string) {
 }
 let diagramId=0;
 export async function hydrateDiagrams(container: HTMLElement, settings: SettingsSnapshot): Promise<void> {
+  const equations=container.querySelectorAll<HTMLElement>('[data-math]:not([data-hydrated="true"])');
+  if(equations.length){const {renderMathSvg}=await import('./math');for(const element of equations){if(!container.contains(element))continue;try{element.innerHTML=DOMPurify.sanitize(renderMathSvg(decodeURIComponent(element.dataset.math??''),element.dataset.display==='true',settings['math.physics'],settings['math.numbering']),{USE_PROFILES:{svg:true,svgFilters:true},ADD_ATTR:['xmlns','aria-hidden','focusable','style']});element.dataset.hydrated='true';}catch(error){element.title=String(error);}}}
   if(!settings['markdown.diagrams']||!container.querySelector('[data-diagram]'))return;
   const {default:mermaid}=await import('mermaid');mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:settings['appearance.theme']==='night'?'dark':'default',fontFamily:'inherit'});
   for(const element of container.querySelectorAll<HTMLElement>('[data-diagram]')){if(element.dataset.hydrated==='true')continue;const source=decodeURIComponent(element.dataset.source??''),kind=element.dataset.diagram;try{const converted=kind==='sequence'?sequenceToMermaid(source):kind==='flow'?flowToMermaid(source):source;const {svg}=await mermaid.render(`opentypora-diagram-${++diagramId}`,converted);if(!container.contains(element))continue;element.innerHTML=DOMPurify.sanitize(svg,{USE_PROFILES:{svg:true,svgFilters:true},ADD_TAGS:['foreignObject','div','span','p'],ADD_ATTR:['xmlns','style']});element.dataset.hydrated='true';}catch(error){element.innerHTML=`<pre class="render-error">${escapeHtml(String(error))}\n${escapeHtml(source)}</pre>`;}}
