@@ -54,6 +54,17 @@ describe('same-source editor integration',()=>{
   it('keeps the source unchanged when a command parameter dialog is cancelled',async()=>{
     const editor=await mount('正文');await act(async()=>{await editor.ref.current!.execute('format.link');});const dialog=editor.host.querySelector('dialog')!;expect(dialog.open).toBe(true);await act(async()=>dialog.dispatchEvent(new Event('cancel',{cancelable:true})));expect(editor.store.getSnapshot().text).toBe('正文');expect(editor.store.getSnapshot().version).toBe(0);
   });
+  it('opens a canonical command from the right-click menu and supports Escape',async()=>{
+    const editor=await mount('正文');await act(async()=>editor.store.setSelection({anchor:0,head:2}));await act(async()=>editor.host.querySelector('.ot-editor')!.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:20,clientY:20})));expect(editor.host.querySelector('[role="menu"]')).not.toBeNull();const bold=[...editor.host.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(button=>button.textContent?.startsWith('粗体'))!;await act(async()=>bold.click());expect(editor.store.getSnapshot().text).toBe('**正文**');
+    await act(async()=>editor.host.querySelector('.ot-editor')!.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:20,clientY:20})));await act(async()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true})));expect(editor.host.querySelector('[role="menu"]')).toBeNull();
+  });
+  it('navigates to an editable footnote definition and back to the same reference',async()=>{
+    const text='# 标题\n\n正文[^abc]\n\n[^abc]: 脚注内容',editor=await mount(text);const reference=editor.host.querySelector('.footnote-ref a')!;expect(reference).not.toBeNull();await act(async()=>reference.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,button:0})));expect(editor.store.getSnapshot().selection.head).toBe(text.lastIndexOf('[^abc]'));
+    const backlink=editor.host.querySelector('.footnote-backref')!;await act(async()=>backlink.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,button:0})));expect(editor.store.getSnapshot().selection.head).toBe(text.indexOf('[^abc]'));expect(editor.store.getSnapshot().text).toBe(text);
+  });
+  it('resolves local Markdown through the authorized bridge without allowing anchor default navigation',async()=>{
+    const action=vi.fn(async()=>({ok:true,value:{path:'C:\\docs\\另一.md',url:'opentypora-asset://local/x'}})),openExternal=vi.fn(),onCommand=vi.fn(),bridge={systemAction:action,openExternal} as unknown as DesktopBridge,editor=await mount('# 标题\n\n[打开](另一.md)',{bridge,onCommand});const link=editor.host.querySelector<HTMLAnchorElement>('.ot-preview-block a')!;await act(async()=>link.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,button:0,ctrlKey:true})));expect(action).toHaveBeenCalledWith('assets.resolve',{url:encodeURI('另一.md'),documentPath:null});expect(onCommand).toHaveBeenCalledWith('file.open','C:\\docs\\另一.md');expect(openExternal).not.toHaveBeenCalled();const click=new MouseEvent('click',{bubbles:true,cancelable:true});expect(link.dispatchEvent(click)).toBe(false);expect(editor.store.getSnapshot().text).toBe('# 标题\n\n[打开](另一.md)');
+  });
 });
 describe('clipboard and untrusted rich input',()=>{
   it('does not delete source when writing the clipboard fails',async()=>{
@@ -64,6 +75,9 @@ describe('clipboard and untrusted rich input',()=>{
   });
   it('rejects a delayed cut against a changed source version',async()=>{
     let finish!:(value:unknown)=>void;const bridge={systemAction:()=>new Promise(resolve=>finish=resolve)} as unknown as DesktopBridge,editor=await mount('原文',{bridge});await act(async()=>editor.store.setSelection({anchor:0,head:2}));let operation!:Promise<boolean>;await act(async()=>{operation=Promise.resolve(editor.ref.current!.execute('edit.cut'));});await act(async()=>editor.store.replaceText('新正文'));await act(async()=>{finish({ok:true,value:undefined});await operation;});expect(editor.store.getSnapshot().text).toBe('新正文');
+  });
+  it('rejects clipboard text arriving after the user moved to another selection',async()=>{
+    let finish!:(value:unknown)=>void;const bridge={systemAction:()=>new Promise(resolve=>finish=resolve)} as unknown as DesktopBridge,editor=await mount('正文',{bridge});let operation!:Promise<boolean>;await act(async()=>{operation=Promise.resolve(editor.ref.current!.execute('edit.paste'));});await act(async()=>editor.store.setSelection({anchor:2,head:2}));await act(async()=>{finish({ok:true,value:{text:'旧内容'}});await operation;});expect(editor.store.getSnapshot().text).toBe('正文');expect(editor.host.querySelector('[role="alert"]')?.textContent).toContain('文档或选区已变化');
   });
   it('converts safe HTML structure and strips executable clipboard content',()=>{
     const result=htmlToMarkdown('<h2>标题</h2><p><b>中文</b> <a href="javascript:alert(1)">链接</a><script>bad()</script></p><table><tr><th>A</th></tr><tr><td>a|b</td></tr></table>');expect(result).toContain('## 标题');expect(result).toContain('**中文**');expect(result).not.toContain('bad()');expect(result).not.toContain('javascript:');expect(result).toContain('a\\|b');
