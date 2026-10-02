@@ -30,7 +30,7 @@ export function validateProfile(profile:ExportProfile):void{
 function removeActiveContent(html:string):string{
   return html.replace(/<(script|iframe|object|embed|form|input|button)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'').replace(/<(script|iframe|object|embed|form|input|button)\b[^>]*\/?>/gi,'').replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi,'').replace(/\s+(?:href|src)\s*=\s*(["'])\s*javascript:[\s\S]*?\1/gi,'');
 }
-export async function exportHtml(snapshot:ExportSnapshot,options:Record<string,unknown>,warnings:string[],request:typeof fetch=fetch,signal?:AbortSignal):Promise<string>{
+export async function exportHtml(snapshot:ExportSnapshot,options:Record<string,unknown>,warnings:string[],request:(address:string,init?:RequestInit)=>Promise<Response>=fetch,signal?:AbortSignal):Promise<string>{
   let content=removeActiveContent(string(snapshot.html,'HTML',128_000_000));
   const sourceBody=content.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);if(sourceBody)content=sourceBody[1];
   const originalStyles=snapshot.html.match(/<style\b[^>]*>[\s\S]*?<\/style>/gi)?.join('\n')||'';
@@ -50,7 +50,7 @@ export async function exportHtml(snapshot:ExportSnapshot,options:Record<string,u
   return`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'; base-uri 'none'"><meta name="author" content="${escape(String(options.author||''))}"><title>${escape(String(options.title||snapshot.title))}</title>${css}${head}</head><body>${outline}<main>${content}</main>${body}</body></html>`;
 }
 export class ExportService {
-  constructor(readonly userData:string,readonly render:RenderService,readonly request:typeof fetch=fetch){}
+  constructor(readonly userData:string,readonly render:RenderService,readonly request:(address:string,init?:RequestInit)=>Promise<Response>=fetch){}
   async export(input:ExportSnapshot,target:string,settings:Record<string,unknown>,signal?:AbortSignal):Promise<ExportResult>{
     const snapshot=structuredClone(input);object(snapshot);string(snapshot.text,'正文',64_000_000);validateProfile(snapshot.profile);target=absolutePath(target,'输出路径');const options=effectiveOptions(snapshot),warnings:string[]=[];
     const workspace=join(this.userData,'exports',randomUUID());await fs.mkdir(workspace,{recursive:true});const staged=join(workspace,`output.${snapshot.profile.extension.replace(/^\./,'')}`);const source=join(workspace,'input.md');await fs.writeFile(source,snapshot.text,'utf8');

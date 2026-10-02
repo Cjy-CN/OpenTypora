@@ -14,12 +14,12 @@
 - `manageAssets('copy'|'move',paths,destinationDirectory)` 按目标目录去重/唯一命名，不覆盖不同内容；`rename`/`moveOrRename` 只接受单项与绝对新文件路径；`delete` 调用系统回收站；各项返回 `{path,url,error?}`。
 - `assets.stage` 参数 `{path,documentPath,strategy}`，返回 `AssetResult`。`assets.materialize` 参数 `{documentPath:新路径,paths:旧绝对资源路径[]}`，返回 `{sourcePath,path,url,error?}[]`；仅复制资源，正文引用由root一次DocumentStore事务更新并保存，服务不改原文。
 - `assets.resolve` 参数 `{url,documentPath}` 返回 `{path?,url}`；本地URL转换为授权应用协议，远程返回原URL。
-- PicGo/PicList使用官方本地HTTP接口 `POST /upload {list:[absolutePath]}`；Core与自定义程序通过无shell子进程真实执行、退出码/超时/取消和输出解析。URL数量不符作为失败；批量逐项错误保留。`.cmd/.bat`不隐式开启shell，需配置`node.exe`+CLI脚本参数或真实exe。
-- 搜索仅在给定根目录内，忽略符号链接、`.git`和`node_modules`；支持Unicode全词、大小写、正则、UTF-16位置、取消和逐项失败诊断。16MB单文件/50000文件/20000命中限制有明确提示。
+- PicGo/PicList使用官方本地HTTP接口 `POST /upload {list:[absolutePath]}`；Core与自定义程序通过无shell子进程真实执行、退出码/超时/取消和输出解析。URL数量不符作为失败；批量逐项错误保留。识别标准npm Windows shim并直接执行其Node入口；其他`.cmd/.bat`不隐式开启shell，需配置`node.exe`+CLI脚本参数或真实exe。
+- 搜索仅在给定根目录内，忽略符号链接、`.git`和`node_modules`；支持Unicode全词、大小写、正则（多行锚点）、UTF-16位置、取消和逐项失败诊断。正则匹配在独立Worker执行，单文件超过1秒即终止，不阻塞主进程；16MB单文件/50000文件/20000命中限制有明确提示。
 
 ## 导入导出
 
-导出克隆冻结Snapshot；内置HTML/PDF/图片使用其HTML，Pandoc结构转换使用其原始Markdown，均不修改原文件。HTML内嵌授权本地图像、保留SVG并禁用脚本；远程图片保持URL，离线缺失通过警告/用户资源策略处理。PDF支持页面/边距/页首页尾/H1分页、中文作者标题增量元数据；PNG/JPEG支持宽度与质量，超过16000px分段并返回警告。
+导出克隆冻结Snapshot；内置HTML/PDF/图片使用其HTML，Pandoc结构转换使用其原始Markdown，均不修改原文件。HTML内嵌授权本地图像、保留SVG并禁用脚本；远程图片通过实际HTTP下载内嵌，失败保留原URL并报告离线风险，支持超时/大小限制/取消。PDF支持页面/边距/页首页尾/H1分页、中文作者标题增量元数据；PNG/JPEG支持宽度与质量，超过16000px分段并返回警告。
 
 Pandoc真实转换：docx、odt、rtf、epub、latex、mediawiki、rst、textile、opml、Markdown方言、native、通用格式。LaTeX PDF独立调用指定TeX引擎；缺依赖准确报错。自定义转换和后置命令使用程序+参数列表以及 `${input}`/`${output}`/`${resourceDir}`/`${title}` 变量，无shell拼接。输出先暂存、成功后原子落盘；后置失败保留生成成功结果。
 
@@ -42,6 +42,8 @@ Pandoc真实转换：docx、odt、rtf、epub、latex、mediawiki、rst、textile
 - `node electron/services/run-render-smoke.mjs`：实际Electron44隐藏窗口PDF/640px PNG/JPEG/长图2段、24方法、平台缓存、实际文件变更监听通过；测试数据与生产数据隔离，进程结束后清理。
 - PDF用独立pdfminer解析器确认1页、中文正文、作者/标题UTF-16元数据。
 - 合并共享/编辑器/工作区共同提交后，再执行含真实Pandoc的npm test：113项通过，其中新增遥测真实HTTP测试证明额外正文/路径/凭据不出现在请求中。
+- 追加npm shim直连CLI及远程图片下载/404诊断后：115项通过。
+- 追加真实正则Worker与灾难性回溯响应性/超时验证后：116项通过；typecheck/build与真实渲染smoke再次通过。
 
 PicGo/PicList适配测试连接真实本地协议测试服务器；Core/自定义适配测试执行真实Node子进程，未声称已连接实际云存储。当前机器没有PicGo/TeX生产工具或云凭据；上传真实云成功、TeX PDF成功、系统打印机、资源管理器注册及更新安装需要对应环境验收，缺依赖/失败路径已验证。下载的Pandoc仅存在系统临时测试运行时，未提交二进制。
 
