@@ -39,7 +39,7 @@ export function executeTextCommand(store:DocumentStore,id:string,settings:Settin
   if(id.startsWith('selection.')){
     const kind=id.slice(10);let range=selection;
     if(kind==='all')range={anchor:0,head:text.length};
-    else if(['block','lineOrSentence','formatted','word'].includes(kind))range=semanticRange(text,selection,kind as 'block'|'lineOrSentence'|'formatted'|'word');
+    else if(['block','lineOrSentence','formatted','word'].includes(kind))range=semanticRange(text,selection,kind as 'block'|'lineOrSentence'|'formatted'|'word',(argument as {line?:boolean})?.line);
     else if(kind==='documentStart')range={anchor:0,head:0};else if(kind==='documentEnd')range={anchor:text.length,head:text.length};
     else if(kind==='lineStart'||kind==='lineEnd'){const line=lineAt(text,selection.head),at=kind==='lineStart'?line.from:line.to;range={anchor:at,head:at};}
     store.setSelection(range);return true;
@@ -53,7 +53,7 @@ export function executeTextCommand(store:DocumentStore,id:string,settings:Settin
   else if(id.startsWith('alert.'))plan=alertPlan(text,selection,id.slice(6));
   else if(id==='text.LF'||id==='text.CRLF')plan=lineEndingPlan(text,selection,id==='text.LF'?'LF':'CRLF');
   else if(id==='range.moveLineUp'||id==='range.moveLineDown')plan=moveLinePlan(text,selection,id==='range.moveLineUp'?-1:1);
-  else if(id.startsWith('range.delete')){const kind=id.slice(12),map:Record<string,'block'|'lineOrSentence'|'formatted'|'word'>={Block:'block',LineOrSentence:'lineOrSentence',Formatted:'formatted',Word:'word'};plan=deletionPlan(text,selection,map[kind]);}
+  else if(id.startsWith('range.delete')){const kind=id.slice(12),map:Record<string,'block'|'lineOrSentence'|'formatted'|'word'>={Block:'block',LineOrSentence:'lineOrSentence',Formatted:'formatted',Word:'word'};plan=deletionPlan(text,selection,map[kind],(argument as {line?:boolean})?.line);}
   else if(id.startsWith('image.'))plan=imagePlan(text,selection,id.slice(6),argument);
   if(!plan)return false;return commitPlan(store,plan);
 }
