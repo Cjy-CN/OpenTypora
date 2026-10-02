@@ -1,2 +1,2 @@
 import { defineConfig } from 'vitest/config';
-export default defineConfig({ test: { include: ['tests/**/*.test.ts', 'src/**/*.test.ts', 'electron/**/*.test.ts'], environment: 'node' } });
+export default defineConfig({ test: { include: ['tests/**/*.test.{ts,tsx}', 'src/**/*.test.{ts,tsx}', 'electron/**/*.test.{ts,tsx}'], environment: 'node' } });
