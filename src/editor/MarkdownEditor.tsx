@@ -17,6 +17,7 @@ import { SourceProjection } from './source-projection';
 import { EDITOR_COMMAND_IDS,canExecuteEditorCommand,clipboardRange,commitPlan,executeTextCommand,selectedCodeOrTable,simpleMarkdownText } from './commands';
 import { htmlToMarkdown } from './html-paste';
 import { assistInput,deleteMatchingPair,newlineBetweenFences } from './input-assistance';
+import { hitRenderedText } from './preview-position';
 import './editor.css';
 export { EDITOR_COMMAND_IDS,canExecuteEditorCommand } from './commands';
 
@@ -57,6 +58,7 @@ class PreviewWidget extends WidgetType {
       event.preventDefault();const config=view.state.field(previewConfiguration),projection=new SourceProjection(config.rawText),rectangle=element.getBoundingClientRect(),ratio=Math.max(0,Math.min(1,(event.clientY-rectangle.top)/Math.max(1,rectangle.height))),lines=this.block.text.split(/\r\n|\n|\r/);let raw=this.block.from;
       if(this.block.kind==='table'){const cell=(event.target as Element).closest('td,th');if(cell){const table=cell.closest('table'),rows=table?[...table.rows]:[],row=cell.parentElement?rows.indexOf(cell.parentElement as HTMLTableRowElement):0,column=[...(cell.parentElement?.children??[])].indexOf(cell);const model=tableAt(config.rawText,this.block.from);if(model){const sourceLine=model.lines[row===0?0:row+1];if(sourceLine){let pipes=0;raw=sourceLine.from;const value=sourceLine.text;for(let i=value.trimStart().startsWith('|')?value.indexOf('|')+1:0;i<value.length;i++){if(value[i]==='\\'){i++;continue;}if(value[i]==='|'&&pipes++===column){break;}if(pipes===column)raw=sourceLine.from+i;}raw=Math.max(sourceLine.from,Math.min(sourceLine.to,raw));}}}}
       else {const index=Math.min(lines.length-1,Math.floor(ratio*lines.length));raw+=lines.slice(0,index).reduce((offset,line)=>offset+line.length+preferredNewline(this.block.text).length,0);const x=Math.max(0,Math.min(1,(event.clientX-rectangle.left)/Math.max(1,rectangle.width)));raw+=Math.min(lines[index].length,Math.floor(x*lines[index].length));}
+      const precise=hitRenderedText(element,event.clientX,event.clientY,this.block.text);if(precise!==null)raw=this.block.from+precise;
       // Avoid placing a caret between the two UTF-16 halves of an emoji.
       if(raw>0&&/[\uDC00-\uDFFF]/.test(config.rawText[raw]??''))raw--;
       const position=projection.toView(raw),anchor=event.shiftKey?view.state.selection.main.anchor:position;view.dispatch({selection:{anchor,head:position},scrollIntoView:true});view.focus();
@@ -72,8 +74,9 @@ function intersects(from:number,to:number,selection:SelectionRange):boolean {con
 function buildDecorations(state:EditorState):DecorationSet {
   const config=state.field(previewConfiguration),projection=new SourceProjection(config.rawText),selection=projection.selectionToSource(state.selection.main),decorations:Range<Decoration>[]=[],blocks=config.sourceMode?[]:markdownBlocks(config.rawText);
   if(!config.sourceMode)for(const block of blocks){const from=projection.toView(block.from),to=projection.toView(block.to);if(from>=to)continue;
-    if(!intersects(block.from,block.to,selection)&&!config.composing)decorations.push(Decoration.replace({widget:new PreviewWidget(block,config,state.field(searchState)),block:true}).range(from,to));
+    if(!intersects(block.from,block.to,selection)&&!config.composing){const newline=config.rawText.slice(block.to).match(/^(?:\r\n|\n|\r)/)?.[0],end=projection.toView(block.to+(newline?.length??0));decorations.push(Decoration.replace({widget:new PreviewWidget(block,config,state.field(searchState)),block:true}).range(from,end));}
     else {
+      if(block.kind==='yaml'){for(let number=state.doc.lineAt(from).number;number<=state.doc.lineAt(to).number;number++)decorations.push(Decoration.line({class:'ot-yaml-line'}).range(state.doc.line(number).from));continue;}
       if(block.kind==='heading'){const line=state.doc.lineAt(from),heading=/^ {0,3}(#{1,6})(?:\s|$)/.exec(line.text);if(heading){decorations.push(Decoration.line({class:`ot-edit-heading ot-h${heading[1].length}`}).range(line.from));if(!config.settings['editor.showActiveSource']&&selection.anchor===selection.head&&selection.head>block.from+heading[0].length&&!config.composing)decorations.push(Decoration.replace({}).range(from,from+heading[0].length));}}
       if(block.kind==='code'){const code=codeAt(config.rawText,block.from);if(code){let number=1;for(let line=state.doc.lineAt(from);line.from<=to;line=state.doc.line(Math.min(state.doc.lines,line.number+1))){decorations.push(Decoration.line({class:`ot-code-line${config.settings['code.wrap']?' ot-code-wrap':''}`,attributes:config.settings['code.lineNumbers']&&line.from>from&&line.to<to?{'data-code-line':String(number++)}:{}}).range(line.from));if(line.number===state.doc.lines||line.to>=to)break;}}}
       const tree=syntaxTree(state),hide=!config.settings['editor.showActiveSource']&&selection.anchor===selection.head&&!config.composing;

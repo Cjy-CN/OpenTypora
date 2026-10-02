@@ -7,7 +7,7 @@ export class SourceProjection {
   readonly text:string;
   private removedRaw:number[]=[];
   private removedView:number[]=[];
-  constructor(readonly source:string){let offset=0;this.text=source.replace(/\r(?=\n)/g,(_,index:number)=>{this.removedRaw.push(index);this.removedView.push(index-offset++);return '';});}
+  constructor(readonly source:string){let offset=0;this.text=source.replace(/\r\n|\r/g,(newline,index:number)=>{if(newline==='\r\n'){this.removedRaw.push(index);this.removedView.push(index-offset++);}return '\n';});}
   toView(position:number):number{const clamped=Math.max(0,Math.min(this.source.length,position));return clamped-lowerBound(this.removedRaw,clamped);}
   toSource(position:number):number{const clamped=Math.max(0,Math.min(this.text.length,position));return clamped+lowerBound(this.removedView,clamped);}
   selectionToView(selection:SelectionRange):SelectionRange{return {anchor:this.toView(selection.anchor),head:this.toView(selection.head)};}
