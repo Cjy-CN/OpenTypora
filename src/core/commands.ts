@@ -6,13 +6,18 @@ export interface CommandDefinition { id: string; label: string; menu: string; sh
 export type CommandHandler = (context: CommandContext, argument?: unknown) => void | Promise<void>;
 export class CommandRegistry {
   private handlers = new Map<string, { run: CommandHandler; enabled: (context: CommandContext) => boolean }>();
+  private listeners = new Set<() => void>();
+  private revision = 0;
+  subscribe = (listener: () => void) => { this.listeners.add(listener); return () => this.listeners.delete(listener); };
+  getRevision = () => this.revision;
+  private changed() { this.revision++; this.listeners.forEach(listener => listener()); }
   constructor(readonly definitions: readonly CommandDefinition[]) {
     if (new Set(definitions.map(item => item.id)).size !== definitions.length) throw new Error('DUPLICATE_COMMAND');
   }
   register(id: string, run: CommandHandler, enabled: (context: CommandContext) => boolean = () => true) {
     if (!this.definitions.some(item => item.id === id)) throw new Error(`UNKNOWN_COMMAND: ${id}`);
     if (this.handlers.has(id)) throw new Error(`DUPLICATE_HANDLER: ${id}`);
-    this.handlers.set(id, { run, enabled }); return () => this.handlers.delete(id);
+    this.handlers.set(id, { run, enabled }); this.changed(); return () => { if(this.handlers.delete(id)) this.changed(); };
   }
   isEnabled(id: string, context: CommandContext) {
     const definition = this.definitions.find(item => item.id === id), handler = this.handlers.get(id);

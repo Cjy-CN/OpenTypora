@@ -22,7 +22,7 @@ export interface SaveRequest { path: string | null; text: string; version: numbe
 export interface SavedFile { path: string; version: number; fingerprint: DiskFingerprint }
 export interface DirectoryEntry { name: string; path: string; directory: boolean; modifiedAt: number; size: number; children?: DirectoryEntry[]; excerpt?: string }
 export interface RecoveryDraft { id: string; session: DocumentSession; savedAt: number }
-export interface AssetResult { path: string; url: string }
+export interface AssetResult { path: string; url: string; error?: string }
 export interface UploadItem { id: string; path: string }
 export interface UploadResult { id: string; url?: string; error?: string }
 export type ExportFormat = 'pdf' | 'pdf-latex' | 'html' | 'html-plain' | 'image' | 'docx' | 'odt' | 'rtf' | 'epub' | 'latex' | 'mediawiki' | 'rst' | 'textile' | 'opml' | 'markdown' | 'native' | 'pandoc' | 'custom';
