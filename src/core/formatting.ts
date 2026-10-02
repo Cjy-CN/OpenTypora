@@ -16,7 +16,7 @@ export function sourceLines(text: string): SourceLine[] {
   return result.length ? result : [{ from: 0, to: 0, end: 0, text: '', newline: '' }];
 }
 export function lineAt(text: string, position: number): SourceLine {
-  return sourceLines(text).find(line => position >= line.from && (position < line.end || line.end === text.length)) ?? sourceLines(text).at(-1)!;
+  const lines=sourceLines(text);return lines.find(line => position >= line.from && (position < line.end || !line.newline && position<=line.to)) ?? lines.at(-1)!;
 }
 export function preferredNewline(text: string, defaultEnding = 'LF'): string { return text.match(/\r\n|\n|\r/)?.[0] ?? (defaultEnding === 'CRLF' ? '\r\n' : '\n'); }
 function replacement(from: number, to: number, insert: string, selection?: SelectionRange): EditPlan { return { changes: [{ from, to, insert }], selection: selection ?? { anchor: from + insert.length, head: from + insert.length } }; }
@@ -86,7 +86,7 @@ export function semanticRange(text:string,selection:SelectionRange,kind:'block'|
 const FORMATTED_NODES=new Set(['StrongEmphasis','Emphasis','InlineCode','Strikethrough','Link','Image','Subscript','Superscript']);
 export function formattedRange(text:string,position:number):{from:number;to:number;name:string}|null {
   const tree=markdownLanguage.parser.parse(text); let node=tree.resolveInner(position,-1);
-  while(node){if(FORMATTED_NODES.has(node.name))return {from:node.from,to:node.to,name:node.name};if(!node.parent)break;node=node.parent;}
+  while(node){if(FORMATTED_NODES.has(node.name))return {from:node.from,to:node.to,name:node.name};if(node.name==='FencedCode'||node.name==='CodeBlock')return null;if(!node.parent)break;node=node.parent;}
   const patterns=[/<u>([\s\S]*?)<\/u>/gi,/==([^\n]*?)==/g,/<!--([\s\S]*?)-->/g];
   for(const pattern of patterns)for(const match of text.matchAll(pattern))if(position>=match.index!&&position<=match.index!+match[0].length)return {from:match.index!,to:match.index!+match[0].length,name:'Extension'};
   return null;

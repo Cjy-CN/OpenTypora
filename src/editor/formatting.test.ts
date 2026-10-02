@@ -2,7 +2,7 @@ import { describe,expect,it } from 'vitest';
 import { DocumentStore,createDocument } from '../core/document';
 import { DEFAULT_SETTINGS } from '../shared/settings';
 import { SourceProjection } from './source-projection';
-import { applyPlan,blockAt,clearInline,codeAt,codePlan,deletionPlan,formattedRange,lineEndingPlan,markdownBlocks,moveLinePlan,paragraphPlan,semanticRange,sourceLines,splitTableCells,tableAt,tablePlan,toggleInline,type EditPlan } from '../core/formatting';
+import { applyPlan,blockAt,clearInline,codeAt,codePlan,deletionPlan,formattedRange,lineAt,lineEndingPlan,markdownBlocks,moveLinePlan,paragraphPlan,semanticRange,sourceLines,splitTableCells,tableAt,tablePlan,toggleInline,type EditPlan } from '../core/formatting';
 const select=(anchor:number,head=anchor)=>({anchor,head});
 function transact(store:DocumentStore,plan:EditPlan){const snapshot=store.getSnapshot();store.apply({transactionId:crypto.randomUUID(),documentId:snapshot.documentId,baseVersion:snapshot.version,origin:'command',...plan});}
 describe('canonical source and view mapping',()=>{
@@ -10,6 +10,7 @@ describe('canonical source and view mapping',()=>{
   it('maps a typed line change to raw offsets without normalizing other lines',()=>{const source='😀\r\na\nb\r\n',projection=new SourceProjection(source);const changes=projection.changesToSource([{from:projection.text.indexOf('a'),to:projection.text.indexOf('a')+1,insert:'甲\n乙'}]);expect(applyPlan(source,{changes,selection:select(0)})).toBe('😀\r\n甲\r\n乙\nb\r\n');});
   it('projects a legacy single-CR file while preserving its exact raw source offsets',()=>{const source='旧\r😀\r文件',projection=new SourceProjection(source);expect(projection.text).toBe('旧\n😀\n文件');for(let offset=0;offset<=source.length;offset++)expect(projection.toSource(projection.toView(offset))).toBe(offset);expect(applyPlan(source,{changes:projection.changesToSource([{from:1,to:1,insert:'\n新'}]),selection:select(0)})).toBe('旧\r新\r😀\r文件');});
   it('distinguishes a terminal empty line from the end of a nonempty line',()=>{expect(sourceLines('a').map(line=>line.text)).toEqual(['a']);expect(sourceLines('a\r\n').map(line=>line.text)).toEqual(['a','']);const plan=paragraphPlan('a',select(1),'heading2',DEFAULT_SETTINGS)!;expect(applyPlan('a',plan)).toBe('## a');});
+  it('treats the caret after a final newline as the terminal empty line',()=>{expect(lineAt('a\r\n',3)).toEqual({from:3,to:3,end:3,text:'',newline:''});const range=semanticRange('a\n',select(2),'lineOrSentence',true);expect(range).toEqual(select(2));});
   it('converts line endings in one undoable command, preserving selection and text',()=>{const store=new DocumentStore(createDocument('😀\r\n甲\n乙'));store.setSelection(select(4,7));transact(store,lineEndingPlan(store.getSnapshot().text,store.getSnapshot().selection,'LF'));expect(store.getSnapshot().text).toBe('😀\n甲\n乙');store.undo();expect(store.getSnapshot().text).toBe('😀\r\n甲\n乙');expect(store.getSnapshot().selection).toEqual(select(4,7));});
 });
 describe('formatting and semantic ranges',()=>{
@@ -38,4 +39,5 @@ describe('tables and fenced source',()=>{
   it('removes the final column as the table and keeps surrounding blocks',()=>{const text='before\n\n| a |\n| --- |\n| b |\n\nafter',plan=tablePlan(text,select(text.indexOf('b |')),'deleteColumn')!;expect(applyPlan(text,plan)).toBe('before\n\n\n\nafter');});
   it('keeps unknown fenced language and literal syntax untouched',()=>{const text='````unknown\r\n**literal**\r\n```\r\n````\r\n\n# heading';const code=codeAt(text,15)!;expect(text.slice(code.contentFrom,code.contentTo)).toBe('**literal**\r\n```\r\n');const plan=codePlan(text,select(15),'language',DEFAULT_SETTINGS,'python')!;expect(applyPlan(text,plan)).toBe(text.replace('unknown','python'));expect(markdownBlocks(text).filter(block=>block.kind==='heading')).toHaveLength(1);});
   it('recognizes unclosed fences as source rather than dropping content',()=>{const text='```foo\n不完整\n# 仍在代码';expect(blockAt(text,10).kind).toBe('code');expect(markdownBlocks(text)[0].text).toBe(text);});
+  it('does not interpret extension markers in fenced literal code as formatted text',()=>{const text='```txt\n==literal==\n```';expect(formattedRange(text,text.indexOf('literal')+2)).toBeNull();});
 });
