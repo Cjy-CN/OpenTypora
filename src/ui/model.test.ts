@@ -1,0 +1,13 @@
+import { describe,it,expect } from 'vitest';
+import { DocumentStore,createDocument } from '../core/document';
+import { parseOutline,searchDocument,replacementChanges,statistics,fuzzyFiles } from './model';
+const options={caseSensitive:false,wholeWord:false,regex:false};
+describe('workspace source navigation',()=>{
+  it('ignores YAML/fences and preserves UTF-16 positions across CRLF',()=>{const text='---\r\ntitle: a\r\n---\r\n# 中文 😀\r\n```md\r\n# hidden\r\n```\r\nSetext\r\n---\r\n### Child\r\n#\r\n';const headings=parseOutline(text);expect(headings.map(item=>item.title)).toEqual(['中文 😀','Setext','Child','无标题']);expect(headings[0].from).toBe(text.indexOf('# 中文'));expect(headings[2].parent).toBe(headings[1].id);});
+  it('finds unicode and zero-length regex without infinite loops',()=>{expect(searchDocument('中文 😀 x X','x',options).matches).toHaveLength(2);expect(searchDocument('😀a','(?=.)',{...options,regex:true}).matches.map(match=>match.from)).toEqual([0,2]);expect(searchDocument('aaa','(a+)+$',{...options,regex:true}).error).toBeTruthy();expect(searchDocument('abc','[',{...options,regex:true}).error).toBeTruthy();});
+  it('respects whole-word and case-sensitive options',()=>{expect(searchDocument('cat scatter CAT','cat',{...options,wholeWord:true}).matches).toHaveLength(2);expect(searchDocument('cat CAT','cat',{...options,caseSensitive:true}).matches).toHaveLength(1);});
+  it('replaces captures with one reversible store transaction',()=>{const text='hello 12\r\nhello 34';const store=new DocumentStore(createDocument(text));const snapshot=store.getSnapshot();const changes=replacementChanges(text,'hello (\\d+)','$1 world',{...options,regex:true});store.apply({transactionId:crypto.randomUUID(),documentId:snapshot.documentId,baseVersion:snapshot.version,changes,origin:'replace'});expect(store.getSnapshot().text).toBe('12 world\r\n34 world');store.undo();expect(store.getSnapshot().text).toBe(text);});
+  it('expands named and whole-match tokens against full context',()=>{expect(replacementChanges('abc 12 end','(?<number>\\d+)','$<number>-$&-$$',{...options,regex:true})[0].insert).toBe('12-12-$');});
+  it('counts mixed languages, graphemes and empty selection',()=>{const stats=statistics('中文 hello world 😀e\u0301\r\n',{anchor:0,head:2},382);expect(stats.words).toBe(5);expect(stats.selectedWords).toBe(2);expect(stats.selectedCharacters).toBe(2);expect(stats.lines).toBe(2);expect(statistics('',{anchor:0,head:0},0).minutes).toBe(0);});
+  it('distinguishes same-name files with path filtering',()=>{const entries=['a','b'].map(folder=>({name:'README.md',path:`C:/root/${folder}/README.md`,directory:false,size:0,modifiedAt:0}));expect(fuzzyFiles(entries,'b/README')).toHaveLength(1);});
+});
