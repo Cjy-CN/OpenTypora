@@ -1,0 +1,14 @@
+node_modules/
+dist/
+dist-electron/
+release/
+coverage/
+test-results/
+playwright-report/
+.local/
+*.log
+.env
+.env.*
+!.env.example
+.typora-inspection.png
+

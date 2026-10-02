@@ -1,0 +1,12 @@
+import { spawn } from 'node:child_process';
+import { createServer } from 'vite';
+import { build } from 'esbuild';
+import electron from 'electron';
+await build({ entryPoints: ['electron/main.ts'], bundle: true, platform: 'node', format: 'cjs', external: ['electron'], outfile: 'dist-electron/main.cjs' });
+await build({ entryPoints: ['electron/preload.ts'], bundle: true, platform: 'node', format: 'cjs', external: ['electron'], outfile: 'dist-electron/preload.cjs' });
+const server = await createServer({ server: { port: 5173, strictPort: true, host: '127.0.0.1' } });
+await server.listen();
+server.printUrls();
+const child = spawn(electron, ['.'], { stdio: 'inherit', env: { ...process.env, OPENTYPORA_DEV_URL: 'http://127.0.0.1:5173' } });
+child.on('exit', async code => { await server.close(); process.exit(code ?? 0); });
+process.on('SIGINT', () => child.kill());
