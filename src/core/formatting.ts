@@ -50,7 +50,7 @@ export function markdownBlocks(text: string): MarkdownBlock[] {
     if(i===0 && /^---\s*$/.test(value)){let end=i+1;while(end<lines.length&&!/^(---|\.\.\.)\s*$/.test(lines[end].text))end++;if(end<lines.length){push(i,end,'yaml');i=end;continue;}}
     if(/^\s*(\$\$|\\\[)\s*$/.test(value)){let end=i+1;const close=value.trim()==='$$'?/^\s*\$\$\s*$/:/^\s*\\\]\s*$/;while(end<lines.length&&!close.test(lines[end].text))end++;if(end<lines.length){push(i,end,'math');i=end;continue;}}
     if(/^\s*\$\$.+\$\$\s*$/.test(value)){push(i,i,'math');continue;}
-    if(i+1<lines.length && isTableSeparator(lines[i+1].text) && splitTableCells(value).length>0){let end=i+1;while(end+1<lines.length&&lines[end+1].text.trim()&&lines[end+1].text.includes('|'))end++;push(i,end,'table');i=end;continue;}
+    if(i+1<lines.length && value.includes('|') && isTableSeparator(lines[i+1].text) && splitTableCells(value).length>0){let end=i+1;while(end+1<lines.length&&lines[end+1].text.trim()&&lines[end+1].text.includes('|'))end++;push(i,end,'table');i=end;continue;}
     if(/^ {0,3}#{1,6}(?:\s|$)/.test(value)){push(i,i,'heading');continue;}
     if(i+1<lines.length&&/^ {0,3}(?:=+|-+)\s*$/.test(lines[i+1].text)){push(i,i+1,'heading');i++;continue;}
     if(/^ {0,3}(?:(?:\*\s*){3,}|(?:-\s*){3,}|(?:_\s*){3,})$/.test(value)){push(i,i,'hr');continue;}
@@ -72,10 +72,10 @@ export function markdownBlocks(text: string): MarkdownBlock[] {
 export function blockAt(text:string,position:number):MarkdownBlock {
   return markdownBlocks(text).find(block=>position>=block.from&&position<=block.to)??{from:lineAt(text,position).from,to:lineAt(text,position).to,kind:'paragraph',text:lineAt(text,position).text};
 }
-export function semanticRange(text:string,selection:SelectionRange,kind:'block'|'lineOrSentence'|'formatted'|'word'):SelectionRange {
+export function semanticRange(text:string,selection:SelectionRange,kind:'block'|'lineOrSentence'|'formatted'|'word',forceLine=false):SelectionRange {
   const position=selection.head;
   if(kind==='block'){const block=blockAt(text,position);return {anchor:block.from,head:block.to};}
-  if(kind==='lineOrSentence'){const line=lineAt(text,position);return {anchor:line.from,head:line.to};}
+  if(kind==='lineOrSentence'){const block=blockAt(text,position);if(!forceLine&&block.kind==='paragraph'){const segmenter=new Intl.Segmenter(undefined,{granularity:'sentence'});for(const segment of segmenter.segment(block.text)){const from=block.from+segment.index,to=from+segment.segment.length;if(position>=from&&position<=to)return {anchor:from,head:to};}}const line=lineAt(text,position);return {anchor:line.from,head:line.to};}
   if(kind==='formatted'){const range=formattedRange(text,position);return range?{anchor:range.from,head:range.to}:semanticRange(text,selection,'word');}
   const segmenter=new Intl.Segmenter(undefined,{granularity:'word'});
   for(const segment of segmenter.segment(text))if(position>=segment.index&&position<segment.index+segment.segment.length&&segment.isWordLike)return {anchor:segment.index,head:segment.index+segment.segment.length};
@@ -95,6 +95,10 @@ const INLINE_MARKERS:Record<string,[string,string]>={bold:['**','**'],italic:['*
 export function toggleInline(text:string,selection:SelectionRange,style:string):EditPlan|null {
   let {from,to}=orderedSelection(selection);let content=text.slice(from,to);
   let markers=INLINE_MARKERS[style];
+  if(from!==to&&!['code','comment'].includes(style)){
+    const blocks=markdownBlocks(text).filter(block=>block.from<to&&block.to>from);
+    if(blocks.length>1){const plans=blocks.map(block=>toggleInline(text,{anchor:Math.max(from,block.from),head:Math.min(to,block.to)},style)).filter((plan):plan is EditPlan=>!!plan),changes=plans.flatMap(plan=>plan.changes);return {changes,selection:{anchor:mapPosition(selection.anchor,changes),head:mapPosition(selection.head,changes)}};}
+  }
   if(style==='code'){
     const existing=formattedRange(text,from);
     if(existing?.name==='InlineCode'&&existing.from<=from&&existing.to>=to){const source=text.slice(existing.from,existing.to),tick=source.match(/^`+/)![0];const inside=source.slice(tick.length,-tick.length);return replacement(existing.from,existing.to,inside,{anchor:existing.from,head:existing.from+inside.length});}
@@ -104,14 +108,16 @@ export function toggleInline(text:string,selection:SelectionRange,style:string):
   const [open,close]=markers;
   if(content.startsWith(open)&&content.endsWith(close)&&content.length>=open.length+close.length){const inside=content.slice(open.length,-close.length);return replacement(from,to,inside,{anchor:from,head:from+inside.length});}
   if(text.slice(Math.max(0,from-open.length),from)===open&&text.slice(to,to+close.length)===close){return replacement(from-open.length,to+close.length,content,{anchor:from-open.length,head:from-open.length+content.length});}
-  if(from===to){const range=formattedRange(text,from);const expected:Record<string,string>={bold:'StrongEmphasis',italic:'Emphasis',strike:'Strikethrough',sub:'Subscript',sup:'Superscript'};if(range&&(range.name===expected[style]||text.slice(range.from,range.from+open.length)===open)){const source=text.slice(range.from,range.to);return replacement(range.from,range.to,source.slice(open.length,-close.length),{anchor:Math.max(range.from,from-open.length),head:Math.max(range.from,from-open.length)});}}
+  if(from===to){let range=formattedRange(text,from);const expected:Record<string,string>={bold:'StrongEmphasis',italic:'Emphasis',strike:'Strikethrough',sub:'Subscript',sup:'Superscript'};let node=markdownLanguage.parser.parse(text).resolveInner(from,-1);while(node){if(node.name===expected[style]){range={from:node.from,to:node.to,name:node.name};break;}if(!node.parent)break;node=node.parent;}if(range&&(range.name===expected[style]||text.slice(range.from,range.from+open.length)===open)){const source=text.slice(range.from,range.to);return replacement(range.from,range.to,source.slice(open.length,-close.length),{anchor:Math.max(range.from,from-open.length),head:Math.max(range.from,from-open.length)});}}
   return replacement(from,to,open+content+close,{anchor:from+open.length,head:from+open.length+content.length});
 }
 export function clearInline(text:string,selection:SelectionRange):EditPlan {
   let {from,to}=orderedSelection(selection);if(from===to){const range=formattedRange(text,from);if(range){from=range.from;to=range.to;}else {const block=blockAt(text,from);from=block.from;to=block.to;}}
-  const content=text.slice(from,to),tree=markdownLanguage.parser.parse(content),removals:TextChange[]=[];
-  tree.iterate({enter(node){if(['EmphasisMark','StrikethroughMark','SubscriptMark','SuperscriptMark'].includes(node.name))removals.push({from:node.from,to:node.to,insert:''});if(node.name==='InlineCode'||node.name==='FencedCode'||node.name==='CodeBlock')return false;}});
-  for(const match of content.matchAll(/<\/?u>|==(?=[\s\S])/gi))if(!removals.some(change=>match.index!>=change.from&&match.index!<change.to))removals.push({from:match.index!,to:match.index!+match[0].length,insert:''});
+  const content=text.slice(from,to),tree=markdownLanguage.parser.parse(content),removals:TextChange[]=[],codeRanges:{from:number;to:number}[]=[];
+  tree.iterate({enter(node){if(['EmphasisMark','StrikethroughMark','SubscriptMark','SuperscriptMark'].includes(node.name))removals.push({from:node.from,to:node.to,insert:''});if(node.name==='InlineCode'||node.name==='FencedCode'||node.name==='CodeBlock'){codeRanges.push({from:node.from,to:node.to});return false;}}});
+  const remove=(start:number,end:number)=>{if(!codeRanges.some(range=>start>=range.from&&start<range.to)&&!removals.some(change=>start>=change.from&&start<change.to))removals.push({from:start,to:end,insert:''});};
+  for(const match of content.matchAll(/<\/?u>/gi))remove(match.index!,match.index!+match[0].length);
+  for(const match of content.matchAll(/==([^=\n]+)==/g)){remove(match.index!,match.index!+2);remove(match.index!+match[0].length-2,match.index!+match[0].length);}
   const cleaned=applyPlan(content,{changes:removals,selection:{anchor:0,head:0}});return replacement(from,to,cleaned,{anchor:from,head:from+cleaned.length});
 }
 export function paragraphPlan(text:string,selection:SelectionRange,command:string,settings:SettingsSnapshot):EditPlan|null {
@@ -127,7 +133,10 @@ export function paragraphPlan(text:string,selection:SelectionRange,command:strin
   }
   if(command==='indent'||command==='outdent'){const indent=' '.repeat(settings['editor.indent']);return transformLines(text,selection,line=>command==='indent'?indent+line:line.startsWith('\t')?line.slice(1):line.replace(new RegExp(`^ {1,${indent.length}}`),'') );}
   if(command==='taskState')return transformLines(text,selection,line=>line.replace(/^(\s*(?:[-+*]|\d+[.)])\s+)\[([ xX])\]/,(_,prefix,state)=>`${prefix}[${state===' '?'x':' '}]`));
-  if(command==='promote'||command==='demote')return transformLines(text,selection,line=>{const match=/^( {0,3})(#{1,6})\s+(.*)$/.exec(line);if(!match)return command==='demote'?`# ${line}`:line;const level=match[2].length+(command==='promote'?-1:1);return level<1?match[1]+match[3]:match[1]+'#'.repeat(Math.min(level,6))+' '+match[3];});
+  if(command==='promote'||command==='demote'){
+    const block=blockAt(text,selection.head),rows=sourceLines(block.text);if(block.kind==='heading'&&rows.length===2&&!/^\s*#/.test(rows[0].text)){const level=(/^\s*=/.test(rows[1].text)?1:2)+(command==='promote'?-1:1),title=rows[0].text,insert=level<1?title:settings['markdown.headingStyle']==='setext'&&level<3?title+newline+(level===1?'=':'-').repeat(Math.max(3,title.length)):'#'.repeat(Math.min(level,6))+' '+title;const change={from:block.from,to:block.to,insert};return {changes:[change],selection:{anchor:mapPosition(selection.anchor,[change]),head:mapPosition(selection.head,[change])}};}
+    return transformLines(text,selection,line=>{const match=/^( {0,3})(#{1,6})\s+(.*)$/.exec(line);if(!match)return command==='demote'?`# ${line}`:line;const level=match[2].length+(command==='promote'?-1:1);return level<1?match[1]+match[3]:match[1]+'#'.repeat(Math.min(level,6))+' '+match[3];});
+  }
   const heading=/^heading([1-6])$/.exec(command);
   if(heading||command==='plain') {
     const lines=selectedLines(text,selection),changes:TextChange[]=[];
@@ -185,7 +194,11 @@ export function tablePlan(text:string,selection:SelectionRange,command:string,ar
   else if(command==='deleteRow'){rows.splice(row,1);if(!rows.length)return replacement(table.from,table.to,'');row=Math.min(row,rows.length-1);}
   else if(command==='deleteColumn'){rows.forEach(cells=>cells.splice(column,1));alignments.splice(column,1);if(!alignments.length)return replacement(table.from,table.to,'');column=Math.min(column,alignments.length-1);}
   else if(command==='alignment'){const alignment=typeof argument==='string'?argument:(argument as {alignment?:string})?.alignment??'left';alignments[column]=alignment==='center'?':---:':alignment==='right'?'---:':alignment==='left'?':---':'---';}
-  else if(command==='nextCell'||command==='previousCell'){column+=command==='nextCell'?1:-1;if(column<0){if(!row)return null;row--;column=alignments.length-1;}if(column>=alignments.length){column=0;row++;if(row===rows.length)rows.push(Array(alignments.length).fill(''));}}
+  else if(command==='nextCell'||command==='previousCell'){
+    column+=command==='nextCell'?1:-1;if(column<0){if(!row)return null;row--;column=alignments.length-1;}if(column>=alignments.length){column=0;row++;}
+    if(row<rows.length){const at=tableCellPosition(text.slice(table.from,table.to),table.from,row,column);return {changes:[],selection:{anchor:at,head:at}};}
+    rows.push(Array(alignments.length).fill(''));const emptyRow=serializeTable(rows,alignments,table.newline).split(table.newline).at(-1)!,insert=table.newline+emptyRow,at=table.to+table.newline.length+2;return replacement(table.to,table.to,insert,{anchor:at,head:at});
+  }
   else if(command!=='formatSource')return null;
   const value=serializeTable(rows,alignments,table.newline),at=tableCellPosition(value,table.from,row,column);return replacement(table.from,table.to,value,{anchor:at,head:at});
 }
@@ -207,10 +220,10 @@ export function moveLinePlan(text:string,selection:SelectionRange,direction:-1|1
   const delta=direction<0?-(chunk[0].text.length+newlines[0].length):chunk.at(-1)!.text.length+newlines[0].length;
   return replacement(chunk[0].from,chunk.at(-1)!.end,insert,{anchor:selection.anchor+delta,head:selection.head+delta});
 }
-export function deletionPlan(text:string,selection:SelectionRange,kind?:'block'|'lineOrSentence'|'formatted'|'word'):EditPlan {
-  let {from,to}=orderedSelection(kind?semanticRange(text,selection,kind):selection);
+export function deletionPlan(text:string,selection:SelectionRange,kind?:'block'|'lineOrSentence'|'formatted'|'word',forceLine=false):EditPlan {
+  let {from,to}=orderedSelection(kind?semanticRange(text,selection,kind,forceLine):selection);
   if(!kind&&from===to){const point=[...text.slice(to)][0];to=Math.min(text.length,to+(point?.length??0));}
-  if(kind==='lineOrSentence'&&to<text.length){to=lineAt(text,to).end;}if(kind==='block'){const after=text.slice(to).match(/^(?:\r\n|\n|\r){1,2}/);if(after)to+=after[0].length;}
+  if(kind==='lineOrSentence'&&(forceLine||blockAt(text,selection.head).kind!=='paragraph')&&to<text.length){to=lineAt(text,to).end;}if(kind==='block'){const after=text.slice(to).match(/^(?:\r\n|\n|\r){1,2}/);if(after)to+=after[0].length;}
   return replacement(from,to,'',{anchor:from,head:from});
 }
 export function lineEndingPlan(text:string,selection:SelectionRange,ending:'LF'|'CRLF'):EditPlan {
