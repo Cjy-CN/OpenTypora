@@ -14,6 +14,7 @@ import { createRenderService } from './render';
 import { dependency, variables, runCommand } from './process';
 import { SystemService } from './system';
 import { readClipboard, writeClipboard } from './clipboard';
+import { SpellcheckService } from './spellcheck';
 export { resolveAuthorizedAsset } from './access';
 export type PlatformMethods = Record<BridgeMethod, (...args: any[]) => any>;
 const platforms=new WeakMap<BrowserWindow,PlatformMethods>();
@@ -25,19 +26,21 @@ export function createPlatform(window:BrowserWindow):PlatformMethods{
   const cached=platforms.get(window);if(cached)return cached;
   const userData=app.getPath('userData');let storage=sharedStorage.get(userData);if(!storage){storage=new Storage(userData);sharedStorage.set(userData,storage);}const savedStorage=storage;
   const exporter=new ExportService(userData,createRenderService(userData),network);const system=new SystemService(storage,{version:app.getVersion(),platform:process.platform,userData,executable:process.execPath,packaged:app.isPackaged,applicationPath:app.getAppPath(),openPath:path=>shell.openPath(path),openExternal:address=>shell.openExternal(address),request:network});
+  const spellcheck=new SpellcheckService(window.webContents.session,()=>app.getPreferredSystemLanguages());
   const watchers=new Map<string,FSWatcher>(),timers=new Map<string,ReturnType<typeof setTimeout>>(),tasks=new Map<string,AbortController>();
   const watchPath=async(path:string)=>{path=absolutePath(path);const directory=(await fs.stat(path)).isDirectory()?path:dirname(path);if(watchers.has(directory))return;
     const watcher=watch(directory,{persistent:false},(_,filename)=>{const changed=filename?join(directory,filename.toString()):directory;if(timers.has(changed))clearTimeout(timers.get(changed));timers.set(changed,setTimeout(()=>{timers.delete(changed);if(!window.isDestroyed())window.webContents.send('opentypora:fileChanged',changed);},100));});watcher.on('error',()=>{watcher.close();watchers.delete(directory);});watchers.set(directory,watcher);
   };
   const task=async<T>(id:string,operation:(signal:AbortSignal)=>Promise<T>):Promise<T>=>{tasks.get(id)?.abort();const controller=new AbortController();tasks.set(id,controller);try{return await operation(controller.signal);}finally{if(tasks.get(id)===controller)tasks.delete(id);}};
   const opened=async(path:string,encoding?:string)=>{const file=await readFile(absolutePath(path),encoding);await authorizeDirectory(dirname(file.path));await savedStorage.remember(file.path);await watchPath(file.path);return file;};
+  const openedFolder=async(value:unknown)=>{const path=await fs.realpath(absolutePath(value));if(!(await fs.stat(path)).isDirectory())throw serviceError('PATH_NOT_DIRECTORY','所选路径不是文件夹，请选择目录或按文件规则打开');await authorizeDirectory(path);await savedStorage.remember(path,'folder');await watchPath(path);return path;};
   window.once('closed',()=>{watchers.forEach(watcher=>watcher.close());timers.forEach(timer=>clearTimeout(timer));tasks.forEach(controller=>controller.abort());platforms.delete(window);});
   const platform:PlatformMethods={
     info:()=>({version:app.getVersion(),platform:process.platform,userData}),
     open:async(path?:string)=>{if(!path){const result=await dialog.showOpenDialog(window,{filters:[{name:'Markdown与文本',extensions:['md','markdown','txt','text','mdx','rmd','qmd','mdtxt','mdtext','apib','rmarkdown','mmd','mkd','mdwn','mdown']},{name:'所有文件',extensions:['*']}],properties:['openFile']});if(result.canceled||!result.filePaths[0])return null;path=result.filePaths[0];}return opened(path);},
     readFile:(path:string)=>opened(path),
     save:async(request:SaveRequest)=>{object(request,'保存请求');let path=request.path;if(!path){const settings=await savedStorage.loadSettings(),extension=String(settings['file.extension']||'.md').replace(/^\./,'');const selected=await dialog.showSaveDialog(window,{filters:[{name:'Markdown',extensions:[extension]}],defaultPath:`未命名.${extension}`});if(selected.canceled||!selected.filePath)return null;path=selected.filePath;}const result=await saveFile({...request,path:absolutePath(path)});await authorizeDirectory(dirname(result.path));await savedStorage.remember(result.path);await watchPath(result.path);return result;},
-    chooseFolder:async()=>{const selected=await dialog.showOpenDialog(window,{properties:['openDirectory']});if(selected.canceled||!selected.filePaths[0])return null;const path=selected.filePaths[0];await authorizeDirectory(path);await savedStorage.remember(path,'folder');await watchPath(path);return path;},
+    chooseFolder:async()=>{const selected=await dialog.showOpenDialog(window,{properties:['openDirectory']});if(selected.canceled||!selected.filePaths[0])return null;return openedFolder(selected.filePaths[0]);},
     listDirectory:async(path:string)=>{const result=await listDirectory(path);await watchPath(path);return result;},
     moveFile:async(from:string,to:string)=>{from=absolutePath(from);to=absolutePath(to);if(from===to)return to;await fs.copyFile(from,to,fs.constants.COPYFILE_EXCL);try{await fs.unlink(from);}catch(error){await fs.unlink(to).catch(()=>undefined);throw error;}await authorizeDirectory(dirname(to));await savedStorage.remember(to);await watchPath(to);return to;},
     trashFile:async(path:string)=>{path=absolutePath(path);await shell.trashItem(path);},
@@ -62,6 +65,9 @@ export function createPlatform(window:BrowserWindow):PlatformMethods{
     systemAction:async(action:string,input:Record<string,unknown>={})=>{action=string(action,'系统操作');const options=object(input);if(action==='clipboardRead')action='clipboard.read';if(action==='clipboardWrite')action='clipboard.write';
       if(action==='clipboard.read')return readClipboard();
       if(action==='clipboard.write')return writeClipboard(options);
+      if(action==='folder.open')return openedFolder(options.path);
+      if(action==='spellcheck.configure')return spellcheck.configure(options.language);
+      if(action==='spellcheck.status')return spellcheck.status();
       if(action==='clipboard.image'){if(options.path){const path=await resolveAuthorizedAsset(absolutePath(options.path));if(!path)throw serviceError('ASSET_ACCESS_DENIED','图片不在已授权目录或不存在');const image=nativeImage.createFromPath(path);if(image.isEmpty())throw serviceError('INVALID_IMAGE','无法解码此图片，请先转换为PNG/JPEG/WebP');await writeClipboard({image:image.toDataURL()});return{path,copied:true};}return platform.insertImage(options.documentPath??null,'clipboard');}
       if(action==='assets.resolve')return resolveAsset(options.url,options.documentPath);
       if(action==='assets.stage'){const path=absolutePath(options.path);const settings=await savedStorage.loadSettings();return insertAsset(path,options.documentPath?absolutePath(options.documentPath):null,String(options.strategy||'copy'),settings,userData);}

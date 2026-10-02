@@ -4,6 +4,11 @@ import { dirname, join } from 'node:path';
 import iconv from 'iconv-lite';
 import { absolutePath, serviceError, string } from './validation';
 import type { DiskFingerprint, OpenedFile, SaveRequest, SavedFile } from '../../src/shared/contracts';
+export async function statPath(value: unknown): Promise<{ path: string; isDirectory: boolean; isFile: boolean; size: number; modifiedAt: number; readonly: boolean }> {
+  const path = await fs.realpath(absolutePath(value)), stat = await fs.stat(path);
+  let readonly = false; try { await fs.access(path, fs.constants.W_OK); } catch { readonly = true; }
+  return { path, isDirectory: stat.isDirectory(), isFile: stat.isFile(), size: stat.size, modifiedAt: stat.mtimeMs, readonly };
+}
 export async function fingerprint(path: string): Promise<DiskFingerprint> {
   const [data,stat] = await Promise.all([fs.readFile(absolutePath(path)),fs.stat(absolutePath(path))]);
   return { modifiedAt:stat.mtimeMs,size:stat.size,hash:createHash('sha256').update(data).digest('hex') };

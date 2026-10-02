@@ -5,6 +5,7 @@
 ## 文件与配置
 
 - `files.ts`：严格UTF-8识别、UTF-8/UTF-16 BOM、明确编码读取、iconv编码的无损写入校验、保留原始混合换行、同路径保存串行化、指纹冲突及同目录原子替换。非法编码返回 `ENCODING_REQUIRED`；UI可调用 `systemAction('file.readEncoding',{path,encoding})` 选择编码。
+- `file.stat({path})`：绝对路径/realpath校验后只检查磁盘元数据，不读取/解码正文、不授权资源；返回 `{path,isDirectory,isFile,size,modifiedAt,readonly}`。`folder.open({path})` 与目录选择器共用真实目录校验、资源目录授权、folder历史与文件变更监听，返回实际path；文件/相对路径拒绝。
 - `storage.ts`：设置同源Schema校验、备份、高级配置、最近历史、恢复草稿版本与时间保护。草稿与历史更新串行化。损坏草稿不删除；`RECOVERY_CORRUPT.detail` 包含可恢复项和损坏项。
 - `access.ts`：已打开/选择的真实目录和单个图像授权。`resolveAuthorizedAsset(value)` 支持绝对路径、file URL及 `opentypora-asset://local/<encodedAbsolutePath>`，realpath检查阻止越界/符号链接逃逸。主进程使用此函数供协议读取。
 
@@ -14,6 +15,7 @@
 - `manageAssets('copy'|'move',paths,destinationDirectory)` 按目标目录去重/唯一命名，不覆盖不同内容；`rename`/`moveOrRename` 只接受单项与绝对新文件路径；`delete` 调用系统回收站；各项返回 `{path,url,error?}`。
 - `assets.stage` 参数 `{path,documentPath,strategy}`，返回 `AssetResult`。`assets.materialize` 参数 `{documentPath:新路径,paths:旧绝对资源路径[]}`，返回 `{sourcePath,path,url,error?}[]`；仅复制资源，正文引用由root一次DocumentStore事务更新并保存，服务不改原文。
 - `assets.resolve` 参数 `{url,documentPath}` 返回 `{path?,url}`；本地URL转换为授权应用协议，远程返回原URL。
+- 图像URL返回URI，不包含Markdown括号。关闭URL转义时，相对路径保留空格；renderer插入需使用 `![alt](<url>)` 保持目的地有效。实际Markdown解析已验证空格/未配对右括号相对路径在尖括号中可用；默认file URI可由服务解析，但Markdown-it默认拒绝file协议，renderer需在授权资源策略内明确处理该协议。
 - PicGo/PicList使用官方本地HTTP接口 `POST /upload {list:[absolutePath]}`；Core与自定义程序通过无shell子进程真实执行、退出码/超时/取消和输出解析。URL数量不符作为失败；批量逐项错误保留。识别标准npm Windows shim并直接执行其Node入口；其他`.cmd/.bat`不隐式开启shell，需配置`node.exe`+CLI脚本参数或真实exe。
 - 搜索仅在给定根目录内，忽略符号链接、`.git`和`node_modules`；支持Unicode全词、大小写、正则（多行锚点）、UTF-16位置、取消和逐项失败诊断。正则匹配在独立Worker执行，单文件超过1秒即终止，不阻塞主进程；16MB单文件/50000文件/20000命中限制有明确提示。
 
@@ -29,7 +31,9 @@ Pandoc真实转换：docx、odt、rtf、epub、latex、mediawiki、rst、textile
 
 ## 系统动作白名单
 
-`file.properties`、`file.readEncoding`、`history.list/clear`、`config.open/reload/reset`、`warnings.reset`、`themes.open`、`exportProfiles.load/save`、`updates.check/download/install/cancel`、`shellNew.add/remove`、`telemetry.status/send`、`diagnostics/log`、`clipboard.read/write/image`（兼容clipboardRead/Write）、`assets.resolve/stage/materialize`、`tasks.cancel`、`watcher.start`、`print.snapshot`。
+`file.stat/properties/readEncoding`、`folder.open`、`spellcheck.configure/status`、`history.list/clear`、`config.open/reload/reset`、`warnings.reset`、`themes.open`、`exportProfiles.load/save`、`updates.check/download/install/cancel`、`shellNew.add/remove`、`telemetry.status/send`、`diagnostics/log`、`clipboard.read/write/image`（兼容clipboardRead/Write）、`assets.resolve/stage/materialize`、`tasks.cancel`、`watcher.start`、`print.snapshot`。
+
+`spellcheck.configure({language})` 真实调用当前窗口Session的 `setSpellCheckerLanguages` / `setSpellCheckerEnabled`；`off` 关闭并保留语言列表，`auto` 将 `app.getPreferredSystemLanguages()` 逐项映射到可用词典（精确、基础语言、区域回退），没有匹配时采用可用en-US。显式语言仅接受可用词典代码（大小写/下划线归一）；未知语言返回 `SPELLCHECK_LANGUAGE_UNAVAILABLE` 和可用清单，保留现有状态。configure与status都返回实际 `{enabled,languages,availableLanguages}`。全局设置持久化、跨窗口同步和拼写建议菜单由主进程集成。
 
 `clipboard.read`返回 `{text,html,image?:PNGDataURL,files?:fileURL[]}`；write接受 `{text?,html?,image?:PNG/JPEG/WebPDataURL}`，MIME白名单固定，不接受原始OS格式。`clipboard.image({path})` 复制授权图像到剪贴板；没有path时读取并暂存剪贴板图片。`openExternal(fileURL)`只允许已授权真实文件。`print.snapshot` **只接受 `{snapshot:ExportSnapshot}`**，新建无Node/preload的隐藏打印窗口；`windowAction('print')`仅通知renderer冻结快照，不要从file.print再次调用同一windowAction。
 
@@ -44,7 +48,8 @@ Pandoc真实转换：docx、odt、rtf、epub、latex、mediawiki、rst、textile
 - 合并共享/编辑器/工作区共同提交后，再执行含真实Pandoc的npm test：113项通过，其中新增遥测真实HTTP测试证明额外正文/路径/凭据不出现在请求中。
 - 追加npm shim直连CLI及远程图片下载/404诊断后：115项通过。
 - 追加真实正则Worker与灾难性回溯响应性/超时验证后：116项通过；typecheck/build与真实渲染smoke再次通过。
+- 追加元数据/目录拖入/拼写Session配置后：含真实Pandoc的全套测试120项通过；真实Electron44隐藏smoke验证二进制stat、junction真实目录、folder历史/资源授权/监听、拼写关闭/显式语言/auto/未知语言状态保护，Bridge仍为24方法。此记录验证Session配置行为，不把配置成功等同于词典下载、正文拼写建议菜单或跨窗口集成全部验收通过。
 
 PicGo/PicList适配测试连接真实本地协议测试服务器；Core/自定义适配测试执行真实Node子进程，未声称已连接实际云存储。当前机器没有PicGo/TeX生产工具或云凭据；上传真实云成功、TeX PDF成功、系统打印机、资源管理器注册及更新安装需要对应环境验收，缺依赖/失败路径已验证。下载的Pandoc仅存在系统临时测试运行时，未提交二进制。
 
-依据：[Electron44剪贴板](https://www.electronjs.org/docs/latest/api/clipboard-item)、[Pandoc手册](https://pandoc.org/MANUAL.html)、[PicGo接口](https://docs.picgo.app/gui/guide/advance)、[Microsoft ShellNew](https://learn.microsoft.com/en-us/windows/win32/shell/context)。
+依据：[Electron44剪贴板](https://www.electronjs.org/docs/latest/api/clipboard-item)、[Electron Session拼写API](https://www.electronjs.org/docs/latest/api/session#sessetspellcheckerlanguageslanguages)、[Electron系统偏好语言](https://www.electronjs.org/docs/latest/api/app#appgetpreferredsystemlanguages)、[Pandoc手册](https://pandoc.org/MANUAL.html)、[PicGo接口](https://docs.picgo.app/gui/guide/advance)、[Microsoft ShellNew](https://learn.microsoft.com/en-us/windows/win32/shell/context)。

@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { basename, extname, join } from 'node:path';
 import { Storage } from './storage';
-import { atomicWrite, readFile } from './files';
+import { atomicWrite, readFile, statPath } from './files';
 import { runCommand, redact } from './process';
 import { absolutePath, object, serviceError, string, url } from './validation';
 export interface SystemAdapter { version:string; platform:string; executable:string; userData:string; packaged?:boolean; applicationPath?:string; openPath:(path:string)=>Promise<string>; openExternal:(url:string)=>Promise<void>; request?:(url:string,init?:RequestInit)=>Promise<Response> }
@@ -48,6 +48,7 @@ export class SystemService {
     await this.storage.save('shell-integration',{});return{removed:true,key,restartExplorerMayBeNeeded:true};
   }
   async action(action:string,input:unknown={}):Promise<unknown>{const options=object(input,'系统选项');switch(action){
+    case'file.stat':return statPath(options.path);
     case'file.properties':{const file=await readFile(absolutePath(options.path));return{path:file.path,size:file.fingerprint.size,modifiedAt:file.fingerprint.modifiedAt,encoding:file.encoding,bom:file.bom,readonly:file.readonly,lineEnding:/\r\n/.test(file.text)?/(?<!\r)\n/.test(file.text)?'mixed':'CRLF':'LF'};}
     case'file.readEncoding':return readFile(absolutePath(options.path),string(options.encoding,'编码'));
     case'history.list':return this.storage.history();case'history.clear':await this.storage.save('history',[]);return undefined;
