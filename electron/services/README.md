@@ -31,9 +31,9 @@ Pandoc真实转换：docx、odt、rtf、epub、latex、mediawiki、rst、textile
 
 `file.properties`、`file.readEncoding`、`history.list/clear`、`config.open/reload/reset`、`warnings.reset`、`themes.open`、`exportProfiles.load/save`、`updates.check/download/install/cancel`、`shellNew.add/remove`、`telemetry.status/send`、`diagnostics/log`、`clipboard.read/write/image`（兼容clipboardRead/Write）、`assets.resolve/stage/materialize`、`tasks.cancel`、`watcher.start`、`print.snapshot`。
 
-`clipboard.read`返回 `{text,html,image?:PNGDataURL,files?:fileURL[]}`；write接受 `{text?,html?,image?:PNG/JPEG/WebPDataURL}`，MIME白名单固定，不接受原始OS格式。`print.snapshot` **只接受 `{snapshot:ExportSnapshot}`**，新建无Node/preload的隐藏打印窗口；`windowAction('print')`仅通知renderer冻结快照，不要从file.print再次调用同一windowAction。
+`clipboard.read`返回 `{text,html,image?:PNGDataURL,files?:fileURL[]}`；write接受 `{text?,html?,image?:PNG/JPEG/WebPDataURL}`，MIME白名单固定，不接受原始OS格式。`clipboard.image({path})` 复制授权图像到剪贴板；没有path时读取并暂存剪贴板图片。`openExternal(fileURL)`只允许已授权真实文件。`print.snapshot` **只接受 `{snapshot:ExportSnapshot}`**，新建无Node/preload的隐藏打印窗口；`windowAction('print')`仅通知renderer冻结快照，不要从file.print再次调用同一windowAction。
 
-更新只读检查不退出程序，显式下载校验发行源资产，安装只打开已下载发行物；关闭脏文档与重启保护由root协调。请求失败重试127.0.0.1:7897。私有发行源401/404提供镜像/访问说明。系统注册仅操作本应用拥有的项，权限错误给诊断；没有接收端的遥测不假装成功。
+更新只读检查不退出程序，显式下载校验发行源资产，安装只打开已下载发行物；关闭脏文档与重启保护由root协调。请求失败重试127.0.0.1:7897。私有发行源401/404提供镜像/访问说明。系统注册检测其他应用既有ShellNew项、拒绝覆盖，仅移除本应用owner标记项；原来没有文件关联时才建立自有ProgID，移除时检查关联仍属于本应用。遥测仅当独立开关开启且配置接收端时发送固定字段event/version/platform，不接受正文、路径或任意payload，缺端点明确报错。
 
 ## 已执行验证
 
@@ -41,6 +41,7 @@ Pandoc真实转换：docx、odt、rtf、epub、latex、mediawiki、rst、textile
 - 设置 `OPENTYPORA_TEST_PANDOC=<pandoc绝对路径>` 后 `npm test`：51项通过（当时共同基线16项+服务35项），其中11种真实Pandoc 3.12格式导出/再次读取及通用JSON，缺TeX错误路径。
 - `node electron/services/run-render-smoke.mjs`：实际Electron44隐藏窗口PDF/640px PNG/JPEG/长图2段、24方法、平台缓存、实际文件变更监听通过；测试数据与生产数据隔离，进程结束后清理。
 - PDF用独立pdfminer解析器确认1页、中文正文、作者/标题UTF-16元数据。
+- 合并共享/编辑器/工作区共同提交后，再执行含真实Pandoc的npm test：113项通过，其中新增遥测真实HTTP测试证明额外正文/路径/凭据不出现在请求中。
 
 PicGo/PicList适配测试连接真实本地协议测试服务器；Core/自定义适配测试执行真实Node子进程，未声称已连接实际云存储。当前机器没有PicGo/TeX生产工具或云凭据；上传真实云成功、TeX PDF成功、系统打印机、资源管理器注册及更新安装需要对应环境验收，缺依赖/失败路径已验证。下载的Pandoc仅存在系统临时测试运行时，未提交二进制。
 

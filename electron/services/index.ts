@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import type { BridgeMethod, ExportSnapshot, RecoveryDraft, SaveRequest, SearchOptions, UploadItem } from '../../src/shared/contracts';
 import { readFile, saveFile, atomicWrite } from './files';
 import { absolutePath, object, serviceError, string, strings, url } from './validation';
-import { authorizeDirectory, authorizeFile, resolveAsset } from './access';
+import { authorizeDirectory, authorizeFile, resolveAsset, resolveAuthorizedAsset } from './access';
 import { listDirectory, searchFiles } from './search';
 import { Storage } from './storage';
 import { assetDirectory, assetUrl, insertAsset, manageAssets, uniqueAsset, uploadItems } from './assets';
@@ -24,7 +24,7 @@ async function network(address:string,init:RequestInit={}):Promise<Response>{
 export function createPlatform(window:BrowserWindow):PlatformMethods{
   const cached=platforms.get(window);if(cached)return cached;
   const userData=app.getPath('userData');let storage=sharedStorage.get(userData);if(!storage){storage=new Storage(userData);sharedStorage.set(userData,storage);}const savedStorage=storage;
-  const exporter=new ExportService(userData,createRenderService(userData));const system=new SystemService(storage,{version:app.getVersion(),platform:process.platform,userData,executable:process.execPath,openPath:path=>shell.openPath(path),openExternal:address=>shell.openExternal(address),request:network});
+  const exporter=new ExportService(userData,createRenderService(userData));const system=new SystemService(storage,{version:app.getVersion(),platform:process.platform,userData,executable:process.execPath,packaged:app.isPackaged,applicationPath:app.getAppPath(),openPath:path=>shell.openPath(path),openExternal:address=>shell.openExternal(address),request:network});
   const watchers=new Map<string,FSWatcher>(),timers=new Map<string,ReturnType<typeof setTimeout>>(),tasks=new Map<string,AbortController>();
   const watchPath=async(path:string)=>{path=absolutePath(path);const directory=(await fs.stat(path)).isDirectory()?path:dirname(path);if(watchers.has(directory))return;
     const watcher=watch(directory,{persistent:false},(_,filename)=>{const changed=filename?join(directory,filename.toString()):directory;if(timers.has(changed))clearTimeout(timers.get(changed));timers.set(changed,setTimeout(()=>{timers.delete(changed);if(!window.isDestroyed())window.webContents.send('opentypora:fileChanged',changed);},100));});watcher.on('error',()=>{watcher.close();watchers.delete(directory);});watchers.set(directory,watcher);
@@ -42,7 +42,7 @@ export function createPlatform(window:BrowserWindow):PlatformMethods{
     moveFile:async(from:string,to:string)=>{from=absolutePath(from);to=absolutePath(to);if(from===to)return to;await fs.copyFile(from,to,fs.constants.COPYFILE_EXCL);try{await fs.unlink(from);}catch(error){await fs.unlink(to).catch(()=>undefined);throw error;}await authorizeDirectory(dirname(to));await savedStorage.remember(to);await watchPath(to);return to;},
     trashFile:async(path:string)=>{path=absolutePath(path);await shell.trashItem(path);},
     reveal:async(path:string)=>{path=absolutePath(path);await fs.access(path);shell.showItemInFolder(path);},
-    openExternal:async(address:string)=>shell.openExternal(url(address)),
+    openExternal:async(address:string)=>{string(address,'链接');if(/^file:/i.test(address)){const path=await resolveAuthorizedAsset(address);if(!path)throw serviceError('ASSET_ACCESS_DENIED','本地链接不在已打开/选择的授权目录中或文件不存在');const error=await shell.openPath(path);if(error)throw serviceError('OPEN_FAILED',error);return;}await shell.openExternal(url(address));},
     loadSettings:()=>savedStorage.loadSettings(),saveSettings:(settings:Record<string,unknown>)=>savedStorage.saveSettings(settings),
     listRecovery:()=>savedStorage.listRecovery(),writeRecovery:(draft:RecoveryDraft)=>savedStorage.writeRecovery(draft),deleteRecovery:(id:string)=>savedStorage.deleteRecovery(id),
     insertImage:async(documentPath:string|null,strategy:string)=>{if(documentPath)documentPath=absolutePath(documentPath);string(strategy,'图片策略');const settings=await savedStorage.loadSettings();let path:string;
@@ -62,7 +62,7 @@ export function createPlatform(window:BrowserWindow):PlatformMethods{
     systemAction:async(action:string,input:Record<string,unknown>={})=>{action=string(action,'系统操作');const options=object(input);if(action==='clipboardRead')action='clipboard.read';if(action==='clipboardWrite')action='clipboard.write';
       if(action==='clipboard.read')return readClipboard();
       if(action==='clipboard.write')return writeClipboard(options);
-      if(action==='clipboard.image')return platform.insertImage(options.documentPath??null,'clipboard');
+      if(action==='clipboard.image'){if(options.path){const path=await resolveAuthorizedAsset(absolutePath(options.path));if(!path)throw serviceError('ASSET_ACCESS_DENIED','图片不在已授权目录或不存在');const image=nativeImage.createFromPath(path);if(image.isEmpty())throw serviceError('INVALID_IMAGE','无法解码此图片，请先转换为PNG/JPEG/WebP');await writeClipboard({image:image.toDataURL()});return{path,copied:true};}return platform.insertImage(options.documentPath??null,'clipboard');}
       if(action==='assets.resolve')return resolveAsset(options.url,options.documentPath);
       if(action==='assets.stage'){const path=absolutePath(options.path);const settings=await savedStorage.loadSettings();return insertAsset(path,options.documentPath?absolutePath(options.documentPath):null,String(options.strategy||'copy'),settings,userData);}
       if(action==='assets.materialize'){const documentPath=absolutePath(options.documentPath),paths=strings(options.paths).map(path=>absolutePath(path));const settings=await savedStorage.loadSettings(),directory=assetDirectory(documentPath,settings,userData);const results=[];for(const path of [...new Set(paths)]){try{const materialized=await uniqueAsset(path,directory,false);await authorizeFile(materialized);results.push({path:materialized,url:assetUrl(materialized,documentPath,settings),sourcePath:path});}catch(error){results.push({path,url:'',error:(error as Error).message});}}return results;}
