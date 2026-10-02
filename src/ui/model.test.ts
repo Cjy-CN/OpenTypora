@@ -1,6 +1,6 @@
 import { describe,it,expect } from 'vitest';
 import { DocumentStore,createDocument } from '../core/document';
-import { parseOutline,searchDocument,replacementChanges,statistics,fuzzyFiles } from './model';
+import { parseOutline,searchDocument,replacementChanges,statistics,fuzzyFiles,relativePath,recentEntries } from './model';
 const options={caseSensitive:false,wholeWord:false,regex:false};
 describe('workspace source navigation',()=>{
   it('ignores YAML/fences and preserves UTF-16 positions across CRLF',()=>{const text='---\r\ntitle: a\r\n---\r\n# 中文 😀\r\n```md\r\n# hidden\r\n```\r\nSetext\r\n---\r\n### Child\r\n#\r\n';const headings=parseOutline(text);expect(headings.map(item=>item.title)).toEqual(['中文 😀','Setext','Child','无标题']);expect(headings[0].from).toBe(text.indexOf('# 中文'));expect(headings[2].parent).toBe(headings[1].id);});
@@ -10,4 +10,8 @@ describe('workspace source navigation',()=>{
   it('expands named and whole-match tokens against full context',()=>{expect(replacementChanges('abc 12 end','(?<number>\\d+)','$<number>-$&-$$',{...options,regex:true})[0].insert).toBe('12-12-$');});
   it('counts mixed languages, graphemes and empty selection',()=>{const stats=statistics('中文 hello world 😀e\u0301\r\n',{anchor:0,head:2},382);expect(stats.words).toBe(5);expect(stats.selectedWords).toBe(2);expect(stats.selectedCharacters).toBe(2);expect(stats.lines).toBe(2);expect(statistics('',{anchor:0,head:0},0).minutes).toBe(0);});
   it('distinguishes same-name files with path filtering',()=>{const entries=['a','b'].map(folder=>({name:'README.md',path:`C:/root/${folder}/README.md`,directory:false,size:0,modifiedAt:0}));expect(fuzzyFiles(entries,'b/README')).toHaveLength(1);});
+  it('never treats a sibling with the same directory prefix as a descendant',()=>{expect(relativePath('C:/docs-other/a.md','C:/docs')).toBe('C:/docs-other/a.md');expect(relativePath('C:/docs/sub/a.md','C:/docs/')).toBe('sub/a.md');});
+  it('uses multiline anchors consistently in find and replace',()=>{const text='first\r\nsecond';expect(searchDocument(text,'^\\w+', {...options,regex:true}).matches.map(match=>match.text)).toEqual(['first','second']);expect(replacementChanges(text,'^([a-z])','$1!',{...options,regex:true}).map(change=>change.from)).toEqual([0,7]);});
+  it('maps current file and folder history and preserves opened timestamps',()=>{expect(recentEntries([{path:'C:/notes',kind:'folder',openedAt:20},{path:'C:/notes/a.md',kind:'file',openedAt:10}])).toEqual([{path:'C:/notes',directory:true,openedAt:20},{path:'C:/notes/a.md',directory:false,openedAt:10}]);});
+  it('migrates legacy history groups and ignores malformed records',()=>{expect(recentEntries({files:['a.md',{path:'b.md',modifiedAt:3},null,{path:5},{path:'',kind:'file'},{path:'x',kind:'unknown'}],folders:['notes',{path:'archive',directory:false}]})).toEqual([{path:'a.md',directory:false},{path:'b.md',directory:false,openedAt:3},{path:'notes',directory:true},{path:'archive',directory:true,openedAt:undefined}]);});
 });
