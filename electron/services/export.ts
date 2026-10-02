@@ -30,28 +30,34 @@ export function validateProfile(profile:ExportProfile):void{
 function removeActiveContent(html:string):string{
   return html.replace(/<(script|iframe|object|embed|form|input|button)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'').replace(/<(script|iframe|object|embed|form|input|button)\b[^>]*\/?>/gi,'').replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi,'').replace(/\s+(?:href|src)\s*=\s*(["'])\s*javascript:[\s\S]*?\1/gi,'');
 }
-export async function exportHtml(snapshot:ExportSnapshot,options:Record<string,unknown>,warnings:string[]):Promise<string>{
+export async function exportHtml(snapshot:ExportSnapshot,options:Record<string,unknown>,warnings:string[],request:(address:string,init?:RequestInit)=>Promise<Response>=fetch,signal?:AbortSignal):Promise<string>{
   let content=removeActiveContent(string(snapshot.html,'HTML',128_000_000));
   const sourceBody=content.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);if(sourceBody)content=sourceBody[1];
   const originalStyles=snapshot.html.match(/<style\b[^>]*>[\s\S]*?<\/style>/gi)?.join('\n')||'';
   if(snapshot.profile.format==='html-plain')content=content.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,'').replace(/\s+(?:style|class)=(?:"[^"]*"|'[^']*')/gi,'');
-  // Inline local images makes exported HTML/PDF independent from source paths. Remote images remain URLs.
+  // Inline images makes exported HTML/PDF independent from source paths and network access.
   const images=[...content.matchAll(/<img\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1/gi)];
-  for(const match of images){const src=match[2];if(/^(data:|https?:)/i.test(src))continue;let candidate:string;try{candidate=src.startsWith('file:')?fileURLToPath(src):src.startsWith('opentypora-asset:')?src:join(snapshot.path?dirname(snapshot.path):process.cwd(),decodeURIComponent(src));const path=await resolveAuthorizedAsset(candidate);if(!path)throw new Error('图片未授权或不存在');const bytes=await fs.readFile(path);if(bytes.length>32_000_000)throw new Error('图片超过32MB内嵌上限');const type:Record<string,string>={'.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.gif':'image/gif','.svg':'image/svg+xml','.webp':'image/webp','.avif':'image/avif','.bmp':'image/bmp'};const mime=type[extname(path).toLowerCase()];if(!mime)throw new Error('不支持图片类型');content=content.replace(match[0],match[0].replace(src,`data:${mime};base64,${bytes.toString('base64')}`));}catch(error){warnings.push(`资源 ${src}：${(error as Error).message}`);}}
+  for(const match of images){const src=match[2];if(/^data:/i.test(src))continue;try{let bytes:Buffer,mime:string|undefined;
+    if(/^https?:/i.test(src)){
+      const timeout=AbortSignal.timeout(10_000),response=await request(src.replace(/&amp;/g,'&'),{signal:signal?AbortSignal.any([signal,timeout]):timeout});if(!response.ok||!response.body)throw new Error(`HTTP ${response.status}`);mime=response.headers.get('content-type')?.split(';')[0];if(!mime||!/^image\/(png|jpeg|gif|svg\+xml|webp|avif|bmp)$/i.test(mime))throw new Error('远程地址未返回支持的图片类型');const reader=response.body.getReader(),parts:Buffer[]=[];let length=0;while(true){const {done,value}=await reader.read();if(done)break;length+=value.byteLength;if(length>32_000_000){await reader.cancel();throw new Error('图片超过32MB内嵌上限');}parts.push(Buffer.from(value));}bytes=Buffer.concat(parts);
+    }else{
+      const candidate=src.startsWith('file:')?fileURLToPath(src):src.startsWith('opentypora-asset:')?src:join(snapshot.path?dirname(snapshot.path):process.cwd(),decodeURIComponent(src));const path=await resolveAuthorizedAsset(candidate);if(!path)throw new Error('图片未授权或不存在');bytes=await fs.readFile(path);if(bytes.length>32_000_000)throw new Error('图片超过32MB内嵌上限');const type:Record<string,string>={'.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.gif':'image/gif','.svg':'image/svg+xml','.webp':'image/webp','.avif':'image/avif','.bmp':'image/bmp'};mime=type[extname(path).toLowerCase()];if(!mime)throw new Error('不支持图片类型');
+    }content=content.replace(match[0],match[0].replace(src,`data:${mime};base64,${bytes.toString('base64')}`));
+  }catch(error){if(signal?.aborted)throw serviceError('CANCELLED','导出已取消');warnings.push(`资源 ${src}：${(error as Error).message}；输出保留原引用，离线可能不可用`);}}
   const body=removeActiveContent(String(options.bodyHtml||'')),head=removeActiveContent(String(options.headHtml||''));
   const outline=options.retainOutline?`<nav class="export-outline" aria-label="目录"><ul>${[...content.matchAll(/<h([1-6])\b[^>]*\bid=["']([^"']+)["'][^>]*>([\s\S]*?)<\/h\1>/gi)].map(match=>`<li class="level-${match[1]}"><a href="#${escape(match[2])}">${match[3].replace(/<[^>]+>/g,'')}</a></li>`).join('')}</ul></nav>`:'';
   const css=snapshot.profile.format==='html-plain'?'':`${originalStyles}<style>${String(options.themeCss||'')}html{font-family:system-ui,"Microsoft YaHei",sans-serif}body{max-width:960px;margin:32px auto;padding:0 24px;font-size:${number(options.fontSize,16,6,96)}px;line-height:1.7}img,svg{max-width:100%}pre{white-space:pre-wrap;overflow-wrap:anywhere}table{border-collapse:collapse;max-width:100%}td,th{border:1px solid #aaa;padding:6px 10px}blockquote{border-left:4px solid #bbb;padding-left:16px}.export-outline{border-bottom:1px solid #bbb}.level-2{margin-left:16px}.level-3{margin-left:32px}@media print{body{max-width:none;margin:0;padding:0}tr,img,svg{break-inside:avoid}pre{break-inside:auto}${options.h1PageBreak?'h1:not(:first-child){break-before:page}':''}}</style>`;
   return`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'; base-uri 'none'"><meta name="author" content="${escape(String(options.author||''))}"><title>${escape(String(options.title||snapshot.title))}</title>${css}${head}</head><body>${outline}<main>${content}</main>${body}</body></html>`;
 }
 export class ExportService {
-  constructor(readonly userData:string,readonly render:RenderService){}
+  constructor(readonly userData:string,readonly render:RenderService,readonly request:(address:string,init?:RequestInit)=>Promise<Response>=fetch){}
   async export(input:ExportSnapshot,target:string,settings:Record<string,unknown>,signal?:AbortSignal):Promise<ExportResult>{
     const snapshot=structuredClone(input);object(snapshot);string(snapshot.text,'正文',64_000_000);validateProfile(snapshot.profile);target=absolutePath(target,'输出路径');const options=effectiveOptions(snapshot),warnings:string[]=[];
     const workspace=join(this.userData,'exports',randomUUID());await fs.mkdir(workspace,{recursive:true});const staged=join(workspace,`output.${snapshot.profile.extension.replace(/^\./,'')}`);const source=join(workspace,'input.md');await fs.writeFile(source,snapshot.text,'utf8');
     try{
       if(signal?.aborted)throw serviceError('CANCELLED','导出已取消');const format=snapshot.profile.format;
       if(['html','html-plain','pdf','image'].includes(format)){
-        const html=await exportHtml(snapshot,options,warnings);
+        const html=await exportHtml(snapshot,options,warnings,this.request,signal);
         if(format==='html'||format==='html-plain')await atomicWrite(target,html);
         else if(format==='pdf')await atomicWrite(target,await this.render.pdf(html,options,signal));
         else{options.imageFormat=/\.jpe?g$/i.test(target)?'jpeg':'png';const images=await this.render.image(html,options,signal);for(let index=0;index<images.length;index++)await atomicWrite(index?join(dirname(target),`${basename(target,extname(target))}-${index+1}${extname(target)}`):target,images[index]);if(images.length>1)warnings.push(`长文已分为${images.length}张图片；首张为${target}`);}

@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { promises as fs } from 'node:fs';
-import { delimiter, join, isAbsolute } from 'node:path';
+import { delimiter, dirname, join, isAbsolute, resolve } from 'node:path';
 import { serviceError, string, strings } from './validation';
 export interface CommandResult { stdout: string; stderr: string; exitCode: number }
 export interface CommandOptions { cwd?: string; timeout?: number; signal?: AbortSignal; maxOutput?: number; input?: string }
@@ -11,10 +11,14 @@ export async function findExecutable(name: string): Promise<string | null> {
   return null;
 }
 export async function runCommand(executable: string, args: string[], options: CommandOptions = {}): Promise<CommandResult> {
-  executable=string(executable,'程序'); args=strings(args); const actual=await findExecutable(executable);
+  executable=string(executable,'程序'); args=strings(args); let actual=await findExecutable(executable);
   if(!actual)throw serviceError('DEPENDENCY_MISSING',`找不到程序 ${executable}；请安装工具或在设置中填写绝对路径`);
-  // Batch files need a shell and cannot preserve arbitrary arguments safely. Use an .exe or Node's CLI entry point.
-  if(/\.(cmd|bat)$/i.test(actual))throw serviceError('EXECUTABLE_REQUIRED','请配置 .exe 程序或 node.exe + CLI 脚本参数；不执行 shell 批处理');
+  // Recognize npm's generated Windows shim, then invoke its Node entry point directly. Never execute batch/shell text.
+  if(/\.(cmd|bat)$/i.test(actual)){
+    const shim=await fs.readFile(actual,'utf8'),entry=shim.match(/"%dp0%[\\/]node_modules[\\/]([^"\r\n]+)"/i);
+    if(!entry||!/(?:node\.exe|_prog.*node)/i.test(shim))throw serviceError('EXECUTABLE_REQUIRED','请配置 .exe 程序或 node.exe + CLI 脚本参数；不执行 shell 批处理');
+    const script=resolve(dirname(actual),'node_modules',entry[1]);await fs.access(script);const node=await findExecutable(join(dirname(actual),'node.exe'))||await findExecutable('node');if(!node)throw serviceError('DEPENDENCY_MISSING','npm CLI需要Node.js，请安装Node.js或配置上传程序');args=[script,...args];actual=node;
+  }
   return new Promise((resolve,reject)=>{
     if(options.signal?.aborted){reject(serviceError('CANCELLED','任务已取消'));return;}
     const child=spawn(actual,args,{cwd:options.cwd,windowsHide:true,shell:false,stdio:['pipe','pipe','pipe']});

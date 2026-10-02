@@ -24,6 +24,7 @@ export function assetDirectory(documentPath:string|null,settings:Record<string,u
 }
 export async function insertAsset(source:string,documentPath:string|null,strategy:string,settings:Record<string,unknown>,userData:string,signal?:AbortSignal):Promise<AssetResult>{
   source=absolutePath(source);if(documentPath)absolutePath(documentPath);await authorizeFile(source);
+  if(settings['image.applyLocal']===false&&(strategy==='copy'||strategy==='upload'))strategy='none';
   let path=source;if(strategy==='copy'||!documentPath){path=await uniqueAsset(source,assetDirectory(documentPath,settings,userData));await authorizeDirectory(dirname(path));}
   if(strategy==='upload'){const uploaded=await uploadItems([{id:'insert',path}],settings,signal);if(uploaded[0].error)throw serviceError('UPLOAD_FAILED',uploaded[0].error);return{path,url:uploaded[0].url!};}
   if(!['none','copy','clipboard'].includes(strategy))throw serviceError('INVALID_ARGUMENT','图片插入策略无效');return{path,url:assetUrl(path,documentPath,settings)};
