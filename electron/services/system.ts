@@ -5,7 +5,7 @@ import { Storage } from './storage';
 import { atomicWrite, readFile } from './files';
 import { runCommand, redact } from './process';
 import { absolutePath, object, serviceError, string, url } from './validation';
-export interface SystemAdapter { version:string; platform:string; executable:string; userData:string; openPath:(path:string)=>Promise<string>; openExternal:(url:string)=>Promise<void>; request?:(url:string,init?:RequestInit)=>Promise<Response> }
+export interface SystemAdapter { version:string; platform:string; executable:string; userData:string; packaged?:boolean; applicationPath?:string; openPath:(path:string)=>Promise<string>; openExternal:(url:string)=>Promise<void>; request?:(url:string,init?:RequestInit)=>Promise<Response> }
 export class SystemService {
   private download:AbortController|null=null;
   private downloaded:string|null=null;
@@ -28,9 +28,24 @@ export class SystemService {
   async installUpdate():Promise<unknown>{if(!this.downloaded)throw serviceError('UPDATE_NOT_DOWNLOADED','请先下载更新');const error=await this.adapter.openPath(this.downloaded);if(error)throw serviceError('UPDATE_INSTALL',error);return{status:extname(this.downloaded)==='.zip'?'archive-opened':'installer-opened',path:this.downloaded};}
   cancelUpdate(){this.download?.abort();return{status:'cancelled'};}
   async shellNew(add:boolean):Promise<unknown>{
-    if(this.adapter.platform!=='win32')throw serviceError('PLATFORM_UNSUPPORTED','资源管理器新建集成仅支持Windows');const key='HKCU\\Software\\Classes\\.md\\OpenTypora.md\\ShellNew';
-    if(add){const directory=join(this.adapter.userData,'shell');await fs.mkdir(directory,{recursive:true});const template=join(directory,'OpenTypora.md');await atomicWrite(template,'');await runCommand('reg.exe',['add',key,'/v','FileName','/t','REG_SZ','/d',template,'/f'],{timeout:10_000});return{added:true,key};}
-    try{await runCommand('reg.exe',['delete',key,'/f'],{timeout:10_000});}catch(error){if((error as {code?:string}).code==='COMMAND_FAILED'){const exists=await runCommand('reg.exe',['query',key],{timeout:10_000}).then(()=>true,()=>false);if(exists)throw error;}else throw error;}return{removed:true,key};
+    if(this.adapter.platform!=='win32')throw serviceError('PLATFORM_UNSUPPORTED','资源管理器新建集成仅支持Windows');
+    const key='HKCU\\Software\\Classes\\.md\\ShellNew',association='HKCU\\Software\\Classes\\.md',progid='HKCU\\Software\\Classes\\OpenTypora.md';
+    const query=async(path:string,args:string[]=[])=>runCommand('reg.exe',['query',path,...args],{timeout:10_000}).then(result=>result.stdout,error=>{if((error as {code?:string}).code==='COMMAND_FAILED')return null;throw error;});
+    const existing=await query(key),owner=existing?await query(key,['/v','OpenTyporaOwner']):null;
+    if(existing&&!owner?.includes('org.opentypora.desktop'))throw serviceError('INTEGRATION_CONFLICT','已有应用拥有Markdown新建项，OpenTypora未改写；请先由原应用移除该项');
+    if(add){
+      const globalExisting=await query('HKCR\\.md\\ShellNew');if(!existing&&globalExisting)throw serviceError('INTEGRATION_CONFLICT','系统已有Markdown新建项，未覆盖其他应用');
+      const directory=join(this.adapter.userData,'shell');await fs.mkdir(directory,{recursive:true});const template=join(directory,'OpenTypora.md');await atomicWrite(template,'');
+      const defaultValue=await query('HKCR\\.md',['/ve']);let createdAssociation=false;
+      if(!defaultValue||!defaultValue.match(/REG_SZ\s+\S/)){
+        const quote=(value:string)=>`"${value.replace(/"/g,'')}"`,command=`${quote(this.adapter.executable)}${this.adapter.packaged===false&&this.adapter.applicationPath?` ${quote(this.adapter.applicationPath)}`:''} "%1"`;
+        await runCommand('reg.exe',['add',progid,'/ve','/t','REG_SZ','/d','OpenTypora Markdown','/f'],{timeout:10_000});await runCommand('reg.exe',['add',`${progid}\\shell\\open\\command`,'/ve','/t','REG_SZ','/d',command,'/f'],{timeout:10_000});await runCommand('reg.exe',['add',association,'/ve','/t','REG_SZ','/d','OpenTypora.md','/f'],{timeout:10_000});createdAssociation=true;
+      }
+      await runCommand('reg.exe',['add',key,'/v','OpenTyporaOwner','/t','REG_SZ','/d','org.opentypora.desktop','/f'],{timeout:10_000});await runCommand('reg.exe',['add',key,'/v','FileName','/t','REG_SZ','/d',template,'/f'],{timeout:10_000});await this.storage.save('shell-integration',{key,createdAssociation:(await this.storage.load('shell-integration')).createdAssociation||createdAssociation});return{added:true,key,restartExplorerMayBeNeeded:true};
+    }
+    if(existing)await runCommand('reg.exe',['delete',key,'/f'],{timeout:10_000});const state=await this.storage.load('shell-integration');
+    if(state.createdAssociation&&(await query(association,['/ve']))?.match(/REG_SZ\s+OpenTypora\.md\s*$/m)){await runCommand('reg.exe',['delete',association,'/ve','/f'],{timeout:10_000});await runCommand('reg.exe',['delete',progid,'/f'],{timeout:10_000});}
+    await this.storage.save('shell-integration',{});return{removed:true,key,restartExplorerMayBeNeeded:true};
   }
   async action(action:string,input:unknown={}):Promise<unknown>{const options=object(input,'系统选项');switch(action){
     case'file.properties':{const file=await readFile(absolutePath(options.path));return{path:file.path,size:file.fingerprint.size,modifiedAt:file.fingerprint.modifiedAt,encoding:file.encoding,bom:file.bom,readonly:file.readonly,lineEnding:/\r\n/.test(file.text)?/(?<!\r)\n/.test(file.text)?'mixed':'CRLF':'LF'};}
@@ -43,8 +58,8 @@ export class SystemService {
     case'exportProfiles.load':return this.storage.load('export-profiles',[]);case'exportProfiles.save':await this.storage.saveProfiles(options.profiles as never);return undefined;
     case'updates.check':return this.checkUpdates();case'updates.download':return this.downloadUpdate(options);case'updates.install':return this.installUpdate();case'updates.cancel':return this.cancelUpdate();
     case'shellNew.add':return this.shellNew(true);case'shellNew.remove':return this.shellNew(false);
-    case'telemetry.status':{const settings=await this.storage.loadSettings();return{enabled:settings['general.telemetry']===true,endpointConfigured:false,message:'本版本未配置数据接收端，开关不上传正文或使用数据'};}
-    case'telemetry.send':throw serviceError('TELEMETRY_NO_ENDPOINT','尚未配置OpenTypora数据接收端，未发送任何数据');
+    case'telemetry.status':{const settings=await this.storage.loadSettings(),endpoint=String(settings['general.telemetryEndpoint']||'');return{enabled:settings['general.telemetry']===true,endpointConfigured:!!endpoint,endpoint,message:endpoint?'仅发送事件类型、应用版本和平台，不发送正文/文件名/路径':'未配置接收端，不发送任何数据'};}
+    case'telemetry.send':{const settings=await this.storage.loadSettings();if(settings['general.telemetry']!==true)throw serviceError('TELEMETRY_DISABLED','匿名使用数据未启用，未发送任何数据');const endpoint=String(settings['general.telemetryEndpoint']||'');if(!endpoint)throw serviceError('TELEMETRY_NO_ENDPOINT','尚未配置OpenTypora数据接收端，未发送任何数据');const event=string(options.event,'事件');if(!['app.open','document.open','export.completed','feature.used','error.code'].includes(event))throw serviceError('INVALID_TELEMETRY_EVENT','事件类型不在匿名使用数据白名单');const payload={event,version:this.adapter.version,platform:this.adapter.platform};const response=await this.request(url(endpoint,['https:','http:']),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!response.ok)throw serviceError('TELEMETRY_HTTP',`数据接收端 HTTP ${response.status}`);return{sent:true,fields:Object.keys(payload)};}
     case'diagnostics':return{version:this.adapter.version,platform:this.adapter.platform,node:process.versions.node,electron:process.versions.electron,userData:this.adapter.userData,settingsPath:join(this.adapter.userData,'settings.json')};
     case'diagnostics.log':{const message=redact(string(options.message,'日志',10_000));await fs.mkdir(join(this.adapter.userData,'logs'),{recursive:true});await fs.appendFile(join(this.adapter.userData,'logs','diagnostics.log'),`${new Date().toISOString()} ${message}\n`);return undefined;}
     default:throw serviceError('INVALID_SYSTEM_ACTION',`未注册的系统操作：${action}`);
