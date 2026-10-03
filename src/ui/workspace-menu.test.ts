@@ -4,12 +4,12 @@ import {DEFAULT_EXPORT_PROFILES} from './export-profiles';
 import {buildMenuEntries,menuPosition,MENU_NAMES,type MenuEntry} from './WorkspaceMenu';
 
 describe('menu structure and viewport placement',()=>{
- it('preserves every command and all nine catalog submenus',()=>{
+ it('preserves every visible command and all nine catalog submenus',()=>{
   const walk=(items:MenuEntry[]):MenuEntry[]=>items.flatMap(item=>[item,...walk(item.children??[])]);
   const all=MENU_NAMES.flatMap(root=>walk(buildMenuEntries(COMMANDS,root,DEFAULT_EXPORT_PROFILES)));
   expect(all.filter(item=>item.key.startsWith('export:')).map(item=>item.argument?.id)).toEqual(DEFAULT_EXPORT_PROFILES.map(profile=>profile.id));
   expect(new Set(all.filter(item=>item.children&&item.key!=='file.export').map(item=>item.key))).toEqual(new Set(COMMANDS.filter(command=>command.menu.includes('/')).map(command=>command.menu)));
-  expect(new Set(all.flatMap(item=>item.command?[item.command.id]:[]))).toEqual(new Set(COMMANDS.map(command=>command.id)));
+  expect(new Set(all.flatMap(item=>item.command?[item.command.id]:[]))).toEqual(new Set(COMMANDS.filter(command=>command.menu).map(command=>command.id)));
  });
  it('keeps third-level paths nested instead of flattening their labels',()=>{
   const command={id:'third',label:'Action',menu:'文件/Group/Subgroup',modifiesDocument:false};

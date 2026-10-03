@@ -21,7 +21,9 @@ export const COMMANDS: readonly CommandDefinition[] = [
   ...group('视图','view',[['sidebar','侧边栏','Ctrl+Shift+L'],['outline','大纲','Ctrl+Shift+1'],['fileList','文档列表','Ctrl+Shift+2'],['fileTree','文件树','Ctrl+Shift+3'],['sidebarSearch','跨文件搜索','Ctrl+Shift+F'],['source','源码模式','Ctrl+/'],['focus','专注模式','F8'],['typewriter','打字机模式','F9'],['statusBar','状态栏'],['statistics','字数统计'],['fullscreen','全屏','F11'],['alwaysOnTop','总在最前'],['actualSize','实际大小','Ctrl+Shift+9'],['zoomIn','放大','Ctrl+Shift+='],['zoomOut','缩小','Ctrl+Shift+-'],['switchWindow','切换窗口','Ctrl+Tab'],['devtools','开发者工具','Shift+F12']]),
   ...group('编辑/搜索','search',[['find','查找','Ctrl+F'],['next','下一个','F3'],['previous','上一个','Shift+F3'],['replace','替换','Ctrl+H'],['replaceAll','替换全部',undefined,true]]),
   ...group('主题','theme',[['github','Github'],['newsprint','Newsprint'],['night','Night'],['pixyll','Pixyll'],['whitey','Whitey'],['custom','加载自定义主题'],['folder','打开主题目录'],['discover','获取主题']]),
-  ...group('帮助','app',[['quickStart','快速开始'],['markdownHelp','Markdown 参考'],['pandocHelp','转换器帮助'],['themeHelp','自定义主题'],['imageHelp','图像帮助'],['recoveryHelp','恢复与版本控制'],['changelog','版本说明'],['credits','鸣谢'],['privacy','隐私说明'],['feedback','反馈'],['site','项目主页'],['update','检查更新'],['license','发行许可'],['about','关于'],['advanced','高级配置'],['reset','重置高级配置'],['windowsNewItem','资源管理器集成']])
+  ...group('帮助','app',[['quickStart','快速开始'],['markdownHelp','Markdown 参考'],['pandocHelp','转换器帮助'],['themeHelp','自定义主题'],['imageHelp','图像帮助'],['feedback','反馈'],['site','项目主页'],['update','检查更新'],['about','关于'],['advanced','高级配置'],['reset','重置高级配置'],['windowsNewItem','资源管理器集成']]),
+  // Keep these commands available to settings and integrations without menu-bar entries.
+  ...group('','app',[['recoveryHelp','恢复与版本控制'],['changelog','版本说明'],['credits','鸣谢'],['privacy','隐私说明'],['license','发行许可']])
 ];
 export function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
   if(!shortcut)return false;

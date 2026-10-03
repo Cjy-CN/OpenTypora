@@ -13,10 +13,10 @@ const HELP:Record<string,{title:string;paragraphs:string[];code?:string}>= {
  'app.imageHelp':{title:'图片与上传',paragraphs:['插入策略包括不处理、复制到资源目录和上传。相对路径以文档位置或文档指定的图片根目录解析。未保存文档的临时资源在保存时处理。','上传适配器包括 PicGo-Core、PicGo、PicList 和自定义命令；请先配置可执行文件或服务地址。失败或旧版本返回不会覆盖新的正文。','仅打开含 YAML 上传规则的文档不会执行上传。删除磁盘图片和删除正文引用是不同操作，删除前应检查重复引用。']},
  'app.recoveryHelp':{title:'恢复与版本控制',paragraphs:['恢复草稿是本地副本，与自动保存原文件分别控制。异常退出后可以选择草稿恢复为可检查的会话，不自动覆盖磁盘文件。','外部文件修改会触发冲突保护。保存失败时应保留内存正文、撤销历史与草稿，选择重试或另存副本。','需要长期版本历史时，可将文档目录交给 Git 管理。OpenTypora 不会把未确认的外部变更静默写回。']},
  'app.changelog':{title:'版本说明',paragraphs:['本构建实现 OpenTypora 的完整工程基线和桌面模块。具体构建版本见“关于”；检查更新使用配置的本应用发行源。','发布记录以仓库 Releases 为准；这里不将未验证的能力宣称为完成。外部依赖状态会在相关操作中检查。']},
- 'app.credits':{title:'鸣谢',paragraphs:['OpenTypora 使用 Electron、React、CodeMirror、Markdown-it、KaTeX、Mermaid、DOMPurify、Highlight.js 等开源组件。组件许可由其各自项目提供。','功能与交互参考 Typora；本应用使用独立实现、自有主题样式和 OpenTypora 名称。']},
+ 'app.credits':{title:'鸣谢',paragraphs:['OpenTypora 使用 Electron、React、CodeMirror、Markdown-it、KaTeX、Mermaid、DOMPurify、Highlight.js 等开源组件。组件许可由其各自项目提供。','OpenTypora 使用独立实现和自有主题样式。']},
  'app.privacy':{title:'隐私说明',paragraphs:['正文、资源和草稿默认存储在本机。文件内容不会因打开、阅读、主题切换或统计而上传。','图片上传、外部帮助、反馈和更新需要用户配置或执行相关动作；相应地址可能接收网络请求。匿名使用数据默认关闭，正文和凭据不属于匿名统计内容。','自定义上传或转换工具由用户配置，可能具有其自身的数据处理规则。']},
- 'app.license':{title:'发行许可',paragraphs:['本仓库当前为私有项目。未声明公开授权前，使用与分发由仓库所有者决定；不借用 Typora 的购买、序列号或激活服务。','第三方组件仍遵循各自许可。发布前请检查分发物中的组件许可与资源授权。']},
- 'app.about':{title:'关于 OpenTypora',paragraphs:['本地 Markdown 查看与编辑器。即时编辑、源码模式、导航和导出围绕同一份原文工作。','项目：Cjy-CN / OpenTypora。功能基线参考 Windows Typora 1.12.4 的调查记录；OpenTypora 是独立项目。']}
+ 'app.license':{title:'发行许可',paragraphs:['本仓库当前为私有项目。未声明公开授权前，使用与分发由仓库所有者决定。','第三方组件仍遵循各自许可。发布前请检查分发物中的组件许可与资源授权。']},
+ 'app.about':{title:'关于 OpenTypora',paragraphs:['本地 Markdown 查看与编辑器。即时编辑、源码模式、导航和导出围绕同一份原文工作。','项目：Cjy-CN / OpenTypora。']}
 };
 export function HelpDialog({id,bridge,store,onClose,notify}:{id:string;bridge?:DesktopBridge;store:DocumentStore;onClose:()=>void;notify:(message:string)=>void}){
  const language=useUiLanguage();const base=HELP[id]??HELP['app.quickStart'];const content=language==='en'?{...base,...(HELP_EN[id]??HELP_EN['app.quickStart'])}:base;const [info,setInfo]=useState<ApplicationInfo|null>(null),[drafts,setDrafts]=useState<RecoveryDraft[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(false);
