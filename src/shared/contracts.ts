@@ -36,7 +36,7 @@ export interface ImportResult { text: string; sourcePath: string; warnings: stri
 export interface SearchOptions { caseSensitive: boolean; wholeWord: boolean; regex: boolean }
 export interface SearchMatch { from: number; to: number; text: string }
 export interface FileSearchMatch { path: string; line: number; excerpt: string; from: number; to: number }
-export interface ApplicationInfo { version: string; platform: string; userData: string }
+export interface ApplicationInfo { version: string; platform: string; userData: string; systemLanguages?: string[] }
 /** Deliberately narrow IPC surface: no arbitrary IPC channel exposed to documents. */
 export interface DesktopBridge {
   pathForFile?(file: File): string;

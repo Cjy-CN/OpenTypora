@@ -13,8 +13,9 @@ import {SEARCH_TIMEOUT_MS} from './search-task';
 (globalThis as typeof globalThis&{IS_REACT_ACT_ENVIRONMENT:boolean}).IS_REACT_ACT_ENVIRONMENT=true;
 let root:Root|undefined,container:HTMLDivElement;
 afterEach(async()=>{if(root)await act(()=>root!.unmount());root=undefined;container?.remove();localStorage.clear();vi.restoreAllMocks();vi.unstubAllGlobals();vi.useRealTimers();});
-async function mount(text='# Heading\nhello HELLO\n',bridge?:DesktopBridge){
+async function mount(text='# Heading\nhello HELLO\n',bridge?:DesktopBridge,language='zh-CN'){
  const store=new DocumentStore(createDocument(text)),settingsStore=new SettingsStore(),registry=new CommandRegistry(COMMANDS),notify=vi.fn(),navigate=vi.fn(),context={document:store,notify};
+ settingsStore.set('general.language',language);
  settingsStore.set('export.profiles',JSON.stringify(DEFAULT_EXPORT_PROFILES));
  container=document.createElement('div');document.body.append(container);root=createRoot(container);
  const onCommand=(id:string,arg?:unknown)=>{void registry.execute(id,context,arg);};
@@ -85,6 +86,36 @@ describe('workspace integration',()=>{
  it('uses all schema settings with Chinese labels and validates advanced input atomically',async()=>{const {registry,context,settingsStore}=await mount();await act(()=>registry.execute('file.preferences',context));await enter(input('搜索设置'),'缩放');expect(container.textContent).toContain('界面缩放百分比');await act(async()=>{[...container.querySelectorAll('button')].find(button=>button.textContent==='高级配置')!.click();});const editor=container.querySelector<HTMLTextAreaElement>('[aria-label="高级配置 JSON"]')!;await act(async()=>{Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value')!.set!.call(editor,'{"appearance.zoom":120,"unknown":true}');editor.dispatchEvent(new Event('input',{bubbles:true}));[...container.querySelectorAll('button')].find(button=>button.textContent==='校验并应用')!.click();});expect(settingsStore.getSnapshot()['appearance.zoom']).toBe(100);expect(container.querySelector('[role=alert]')?.textContent).toContain('未知设置');});
  it('keeps search text outside the source and disables readonly replacement',async()=>{const {registry,context,store}=await mount('cat cat');store.patchMetadata({readonly:true});await act(()=>registry.execute('search.replace',context));await enter(input('文内查找'),'cat');await enter(input('替换为'),'dog');expect(registry.isEnabled('search.replaceAll',context)).toBe(false);expect(store.getSnapshot().text).toBe('cat cat');});
  it('translates core menus, settings and help without translating user source or headings',async()=>{const {registry,context,settingsStore,store}=await mount('# 主题\n\n文件');await act(()=>registry.execute('view.outline',context));await act(async()=>{settingsStore.set('general.language','en');});expect([...container.querySelectorAll('nav button')].some(button=>button.textContent==='File')).toBe(true);expect(container.querySelector('.outline-entry')?.textContent).toContain('主题');expect(store.getSnapshot().text).toBe('# 主题\n\n文件');await act(()=>registry.execute('file.preferences',context));expect(container.querySelector('[role=dialog]')?.getAttribute('aria-label')).toBe('Preferences');expect(container.textContent).toContain('On startup');await act(async()=>{container.querySelector<HTMLButtonElement>('[aria-label="Close dialog"]')!.click();});await act(()=>registry.execute('app.markdownHelp',context));expect(container.querySelector('[role=dialog]')?.getAttribute('aria-label')).toBe('Markdown reference');expect(container.textContent).toContain('Unknown or incomplete syntax remains');expect(store.getSnapshot().version).toBe(0);});
+ it('follows desktop system language, refreshes on focus and preserves manual choices and source',async()=>{
+  let systemLanguages=['zh-Hant-TW'];
+  vi.spyOn(navigator,'languages','get').mockReturnValue(['en-US']);
+  const info=vi.fn(async()=>({ok:true,value:{version:'0.1.0',platform:'win32',userData:'test',systemLanguages}}));
+  const {settingsStore,registry,context,store}=await mount('# 主题\n\n文件',{info,onFileChanged:()=>()=>{}} as unknown as DesktopBridge,'auto');
+  const initialDirty=store.getSnapshot().dirty;
+  const menuLabels=()=>[...container.querySelectorAll('nav button')].map(button=>button.textContent);
+  expect(menuLabels()).toContain('文件');expect(document.documentElement.lang).toBe('zh-CN');
+  systemLanguages=['en-GB','zh-CN'];await act(async()=>{window.dispatchEvent(new Event('focus'));});
+  expect(menuLabels()).toContain('File');expect(document.documentElement.lang).toBe('en');
+  expect(settingsStore.getSnapshot()['general.language']).toBe('auto');
+  await act(()=>registry.execute('file.preferences',context));await enter(input('Search settings'),'interface language');
+  const select=container.querySelector<HTMLSelectElement>('select[id="setting-general.language"]')!;
+  expect(select.value).toBe('auto');expect(select.textContent).toContain('Follow system');
+  await act(()=>{select.value='zh-CN';select.dispatchEvent(new Event('change',{bubbles:true}));});
+  expect(menuLabels()).toContain('文件');await act(async()=>{window.dispatchEvent(new Event('focus'));});expect(menuLabels()).toContain('文件');
+  await act(()=>settingsStore.set('general.language','auto'));expect(menuLabels()).toContain('File');
+  await act(()=>container.querySelector<HTMLButtonElement>('[aria-label="Close dialog"]')!.click());
+  await act(()=>registry.execute('app.markdownHelp',context));expect(container.querySelector('[role=dialog]')?.getAttribute('aria-label')).toBe('Markdown reference');
+  expect(store.getSnapshot().text).toBe('# 主题\n\n文件');expect(store.getSnapshot().version).toBe(0);expect(store.getSnapshot().dirty).toBe(initialDirty);
+ });
+ it('follows browser language changes without a desktop bridge',async()=>{
+  let languages=['fr-FR'];vi.spyOn(navigator,'languages','get').mockImplementation(()=>languages);
+  const {settingsStore,store}=await mount('unchanged',undefined,'auto');
+  expect(container.querySelector('nav')?.textContent).toContain('File');
+  languages=['zh-CN'];await act(async()=>{window.dispatchEvent(new Event('languagechange'));});
+  expect(container.querySelector('nav')?.textContent).toContain('文件');
+  await act(()=>settingsStore.set('general.language','en'));await act(async()=>{window.dispatchEvent(new Event('languagechange'));});
+  expect(container.querySelector('nav')?.textContent).toContain('File');expect(store.getSnapshot().text).toBe('unchanged');expect(store.getSnapshot().version).toBe(0);
+ });
  it('terminates unresponsive regex workers and preserves editable UI',async()=>{const instances:{terminate:ReturnType<typeof vi.fn>}[]=[];class StuckWorker{onmessage:unknown;onerror:unknown;terminate=vi.fn();postMessage=vi.fn();constructor(){instances.push(this);}}vi.stubGlobal('Worker',StuckWorker);vi.useFakeTimers();const {registry,context}=await mount('aaaaaaaaaaaaaaaa');await act(()=>registry.execute('search.find',context));await enter(input('文内查找'),'a');await act(async()=>{container.querySelector<HTMLButtonElement>('[aria-label="正则表达式"]')!.click();});await act(async()=>{vi.advanceTimersByTime(SEARCH_TIMEOUT_MS+1);});expect(instances.some(instance=>instance.terminate.mock.calls.length>0)).toBe(true);expect(container.querySelector('[role=alert]')?.textContent).toContain('超过时限');await act(()=>registry.execute('theme.night',context));expect(container.querySelector('.theme-night')).toBeTruthy();});
  it('starts at the first match, preserves its selection and keeps focus in search',async()=>{const {registry,context,store,navigate}=await mount('hello hello');await act(()=>registry.execute('search.find',context));await enter(input('文内查找'),'hello');await act(()=>registry.execute('search.next',context));expect(navigate).toHaveBeenLastCalledWith(0);expect(store.getSnapshot().selection).toEqual({anchor:0,head:5});expect(document.activeElement).toBe(input('文内查找'));await act(()=>registry.execute('search.next',context));expect(navigate).toHaveBeenLastCalledWith(6);expect(store.getSnapshot().selection).toEqual({anchor:6,head:11});});
  it('opens a recent folder as the navigation root and preserves a translated-looking folder name',async()=>{const listDirectory=vi.fn().mockResolvedValue({ok:true,value:[]});const bridge={systemAction:vi.fn().mockResolvedValue({ok:true,value:[{path:'C:/notes/文件',kind:'folder',openedAt:10}]}),listDirectory,onFileChanged:()=>()=>{}} as unknown as DesktopBridge;const {registry,context,store,settingsStore}=await mount('# 文件',bridge);const open=vi.fn();registry.register('file.open',(_context,arg)=>{open(arg);});await act(()=>settingsStore.set('general.language','en'));await act(()=>registry.execute('file.recent',context));expect(container.querySelector('.quick-results strong')?.textContent).toBe('文件');await act(()=>container.querySelector<HTMLButtonElement>('.quick-results button')!.click());expect(store.getSnapshot().rootDirectory).toBe('C:/notes/文件');expect(open).not.toHaveBeenCalled();expect(container.querySelector('.root-directory')?.textContent).toContain('文件');expect(listDirectory).toHaveBeenCalledWith('C:/notes/文件');expect(store.getSnapshot().text).toBe('# 文件');});
