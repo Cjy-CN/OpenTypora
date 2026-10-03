@@ -12,10 +12,10 @@
 
 **可以直接从 [GitHub Releases](https://github.com/Cjy-CN/OpenTypora/releases/latest) 下载使用，无需安装 Node.js、npm 或自行编译。**
 
-| 版本 0.1.0 · Windows 64 位 | 下载与使用方式 |
+| 版本 0.1.1 · Windows 64 位 | 下载与使用方式 |
 | --- | --- |
-| **安装版（推荐）** | [下载 OpenTypora 安装包](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.0/OpenTypora-Setup-0.1.0-x64.exe)，运行安装向导后启动。包含快捷方式、Markdown 右键打开与卸载程序。 |
-| **便携版** | [下载 OpenTypora 便携版](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.0/OpenTypora-Portable-0.1.0-x64.exe)，双击直接运行，无需安装；不会自动注册文件打开入口或卸载程序。 |
+| **安装版（推荐）** | [下载 OpenTypora 安装包](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.1/OpenTypora-Setup-0.1.1-x64.exe)，运行安装向导后启动。包含快捷方式、Markdown 右键打开与卸载程序。 |
+| **便携版** | [下载 OpenTypora 便携版](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.1/OpenTypora-Portable-0.1.1-x64.exe)，双击直接运行，无需安装；不会自动注册文件打开入口或卸载程序。 |
 
 也可在 Release 页面展开 **Assets** 下载 `.exe` 文件。**Source code（zip / tar.gz）** 是源码压缩包，不能直接作为应用运行。当前构建尚未配置生产代码签名。
 
@@ -121,6 +121,7 @@ npm run dev
 | `npm run dev` | 启动桌面开发应用 |
 | `npm run dev:web` | 启动不包含特权桌面服务的网页界面 |
 | `npm test` | 单元和集成测试 |
+| `npm run test:editor` | 在隔离的隐藏窗口中验证真实 Chromium 光标、拖选和方向键交互 |
 | `npm run typecheck` | 检查 TypeScript 类型 |
 | `npm run build` | 构建前端与 Electron 入口 |
 | `npm run test:desktop` | 使用隐藏窗口和隔离数据验证真实桌面应用 |

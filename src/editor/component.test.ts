@@ -34,7 +34,7 @@ describe('same-source editor integration',()=>{
     await act(async()=>header.querySelector('a[href="README.zh-CN.md"]')!.dispatchEvent(new MouseEvent('mousedown',{button:0,ctrlKey:true,bubbles:true,cancelable:true})));
     expect(opened).toHaveBeenCalledOnce();expect(editor.host.querySelector('.ot-preview-html')).not.toBeNull();
     expect(editor.store.getSnapshot().selection).toEqual({anchor:0,head:0});expect(editor.store.getSnapshot().text).toBe(text);expect(editor.store.getSnapshot().version).toBe(0);expect(editor.store.canUndo()).toBe(false);
-    await act(async()=>header.querySelector('h1')!.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true,cancelable:true})));
+    await act(async()=>{header.querySelector('h1')!.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true,cancelable:true}));document.dispatchEvent(new MouseEvent('mouseup',{button:0,bubbles:true}));});
     expect(editor.host.querySelector('.ot-preview-html')).toBeNull();expect(editor.view.state.doc.toString()).toContain('<h1 align="center">OpenTypora</h1>');
     await act(async()=>editor.view.contentDOM.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true})));
     expect(editor.host.querySelector('.ot-preview-html h1')?.textContent).toBe('OpenTypora');expect(editor.store.getSnapshot().text).toBe(text);expect(editor.store.canUndo()).toBe(false);
@@ -69,7 +69,15 @@ describe('same-source editor integration',()=>{
     const editor=await mount('old');await act(async()=>editor.store.replaceText('新😀\r\n文','replace',{anchor:3,head:3}));expect(editor.view.state.doc.toString()).toBe('新😀\n文');expect(editor.view.state.selection.main.head).toBe(3);
     await act(async()=>editor.store.replaceSession(createDocument('另一文档')));expect(editor.view.state.doc.toString()).toBe('另一文档');expect(editor.store.canUndo()).toBe(false);
   });
-  it('edits YAML front matter as unformatted raw lines instead of a Setext heading',async()=>{const text='---\ntitle: 测试\ntags: [a, b]\n---\n\n# 正文',editor=await mount(text);const yaml=editor.host.querySelectorAll('.ot-yaml-line');expect(yaml).toHaveLength(4);expect([...yaml].map(line=>line.textContent).join('\n')).toBe('---\ntitle: 测试\ntags: [a, b]\n---');expect(editor.host.querySelector('.ot-yaml-line.ot-edit-heading')).toBeNull();expect(editor.store.getSnapshot().text).toBe(text);});
+  it('opens YAML in reading view and edits it as raw lines instead of a Setext heading',async()=>{const text='---\ntitle: 测试\ntags: [a, b]\n---\n\n# 正文',editor=await mount(text);expect(editor.host.querySelector('.ot-preview-yaml')).not.toBeNull();await act(async()=>editor.store.setSelection({anchor:5,head:5}));const yaml=editor.host.querySelectorAll('.ot-yaml-line');expect(yaml).toHaveLength(4);expect([...yaml].map(line=>line.textContent).join('\n')).toBe('---\ntitle: 测试\ntags: [a, b]\n---');expect(editor.host.querySelector('.ot-yaml-line.ot-edit-heading')).toBeNull();expect(editor.store.getSnapshot().text).toBe(text);});
+  it('opens ordinary paragraphs in preview and freezes their DOM until a drag ends',async()=>{
+    const text='第一段 **粗体**\r\n\r\n第二段 😀文字',editor=await mount(text),blocks=editor.host.querySelectorAll('.ot-preview-block');expect(blocks).toHaveLength(2);
+    await act(async()=>blocks[0].dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true,cancelable:true})));
+    await act(async()=>editor.view.dispatch({selection:{anchor:0,head:editor.view.state.doc.length},userEvent:'select.pointer'}));
+    expect(editor.host.querySelector('.ot-preview-block')).toBe(blocks[0]);expect(editor.host.querySelectorAll('.ot-preview-block')).toHaveLength(2);
+    await act(async()=>document.dispatchEvent(new MouseEvent('mouseup',{button:0,bubbles:true})));
+    expect(editor.host.querySelector('.ot-preview-block')).toBeNull();expect(editor.store.getSnapshot().text).toBe(text);expect(editor.store.getSnapshot().version).toBe(0);expect(editor.store.canUndo()).toBe(false);expect(editor.host.querySelector('.ot-pointer-selection')).toBeNull();
+  });
   it('styles an active heading after loading front matter with the caret at the hash boundary',async()=>{
     const text=readFileSync('docs/fixtures/advanced-feature-sample.md','utf8'),editor=await mount('old'),position=text.indexOf('# 扩展功能样例');
     await act(async()=>editor.store.load({path:'C:\\fixtures\\advanced-feature-sample.md',text,encoding:'utf-8',bom:false,readonly:false,fingerprint:{hash:'fixture',modifiedAt:0,size:Buffer.byteLength(text)}}));

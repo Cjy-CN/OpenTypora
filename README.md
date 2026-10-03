@@ -12,10 +12,10 @@
 
 **Ready-to-run builds are available in [GitHub Releases](https://github.com/Cjy-CN/OpenTypora/releases/latest).** You do not need Node.js, npm or build tools to use them.
 
-| Version 0.1.0 · Windows x64 | Download and use |
+| Version 0.1.1 · Windows x64 | Download and use |
 | --- | --- |
-| **Installer — recommended** | [Download OpenTypora Setup](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.0/OpenTypora-Setup-0.1.0-x64.exe), run setup, then launch OpenTypora. Includes shortcuts, Markdown right-click integration and an uninstaller. |
-| **Portable** | [Download OpenTypora Portable](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.0/OpenTypora-Portable-0.1.0-x64.exe) and double-click to run without installation. Does not automatically register file-opening entries or an uninstaller. |
+| **Installer — recommended** | [Download OpenTypora Setup](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.1/OpenTypora-Setup-0.1.1-x64.exe), run setup, then launch OpenTypora. Includes shortcuts, Markdown right-click integration and an uninstaller. |
+| **Portable** | [Download OpenTypora Portable](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.1/OpenTypora-Portable-0.1.1-x64.exe) and double-click to run without installation. Does not automatically register file-opening entries or an uninstaller. |
 
 On the release page, expand **Assets** and choose an `.exe` file. **Source code (zip / tar.gz)** contains source files and is not a ready-to-run application. Current builds are unsigned.
 
@@ -121,6 +121,7 @@ npm run dev
 | `npm run dev` | Start the desktop development application |
 | `npm run dev:web` | Run the browser UI without privileged desktop services |
 | `npm test` | Unit and integration tests |
+| `npm run test:editor` | Real Chromium cursor, drag selection and keyboard navigation tests in an isolated hidden window |
 | `npm run typecheck` | Check TypeScript types |
 | `npm run build` | Build renderer and Electron entries |
 | `npm run test:desktop` | Real desktop tests with hidden windows and isolated data |

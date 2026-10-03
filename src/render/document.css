@@ -5,10 +5,11 @@
 .workspace-menu-root>button{padding:2px 7px;border-radius:0}
 .theme-github .workspace-document .ot-editor .cm-content{max-width:1000px;line-height:1.6}
 .theme-github .workspace-document .ot-editor .cm-scroller{line-height:1.6}
-.theme-github .workspace-document .ot-preview-block{padding:0;margin:0 4px 16px;white-space:normal}
-.theme-github .workspace-document .ot-preview-heading{margin-top:20px;margin-bottom:16px}
-.theme-github .workspace-document .ot-preview-yaml{margin-top:6px;margin-bottom:16px}
-.theme-github .workspace-document .ot-preview-toc{margin-top:28px;margin-bottom:52px}
+/* CodeMirror measures widget border boxes. Put all vertical spacing inside those boxes. */
+.theme-github .workspace-document .ot-preview-block{padding:0 0 16px;margin:0 4px;white-space:normal}
+.theme-github .workspace-document .ot-preview-heading{padding-top:20px;padding-bottom:16px}
+.theme-github .workspace-document .ot-preview-yaml{padding-top:6px;padding-bottom:16px}
+.theme-github .workspace-document .ot-preview-toc{padding-top:28px;padding-bottom:52px}
 .theme-github .workspace-document .ot-preview-block h1,.theme-github .workspace-document .ot-h1{font-size:2.25em;line-height:1.2;font-weight:700}
 .theme-github .workspace-document .ot-preview-block h2,.theme-github .workspace-document .ot-h2{font-size:1.75em;line-height:1.225;font-weight:700}
 .theme-github .workspace-document .ot-preview-block h3,.theme-github .workspace-document .ot-h3{font-size:1.5em;font-weight:700}

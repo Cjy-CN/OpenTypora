@@ -6,3 +6,10 @@
 .ot-preview-block{margin:0 4px;padding:4px 0}.ot-preview-block p{margin:0}.ot-preview-block h1,.ot-preview-block h2,.ot-preview-block h3,.ot-preview-block h4,.ot-preview-block h5,.ot-preview-block h6{line-height:1.25;margin:0}.ot-yaml-line,.ot-yaml-line span{font-family:Consolas,monospace!important;font-weight:400!important;font-style:normal!important;text-decoration:none!important;font-size:inherit!important;line-height:1.7!important;color:inherit!important}.ot-yaml-line{background:var(--ot-code-bg);border:0!important}
 .ot-preview-html>:is(p,h1,h2,h3,h4,h5,h6){margin:16px 0}.ot-preview-html>:first-child{margin-top:0}.ot-preview-html>:last-child{margin-bottom:0}
 .ot-preview-html,.ot-preview-html.ot-preserve-spaces :is(p,li){white-space:normal}
+.ot-selecting-preview .cm-selectionLayer,.ot-selecting-preview .cm-cursorLayer{visibility:hidden}
+.ot-pointer-selection{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+.ot-pointer-highlight,.ot-pointer-caret{position:absolute;pointer-events:none}
+.ot-pointer-highlight{background:#2f81f740}
+.ot-pointer-caret{background:currentColor;width:1px!important}
+.ot-reading-preview .cm-cursorLayer{visibility:hidden}
+.ot-preview-block{display:flow-root}

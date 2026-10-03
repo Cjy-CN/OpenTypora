@@ -13,10 +13,16 @@ export function renderedTextPosition(source:string,visible:string,offset:number)
   }
   let target=0;for(let index=0;index<Math.min(offset,visible.length);index++)if(!/\s/.test(visible[index]))target++;
   const rendered=visible.replace(/\s/g,'');let position=0,last=0;
+  const sourceOffset=(next:number)=>{
+    if(target===0||!(/\s/.test(visible[offset]??'')&&offset<visible.length))return next;
+    let start=offset;while(start>0&&/\s/.test(visible[start-1]))start--;
+    const spaces:number[]=[];for(let index=last+1;index<next;index++)if(/\s/.test(source[index])&&!skipped.some(range=>index>=range.from&&index<range.to))spaces.push(index);
+    return spaces[Math.min(offset-start,spaces.length-1)]??Math.min(source.length,last+1);
+  };
   for(let index=0;index<rendered.length;index++){
     while(position<characters.length&&characters[position].value!==rendered[index])position++;
     if(position===characters.length)return index===target?Math.min(source.length,last+1):null;
-    if(index===target)return characters[position].offset;last=characters[position++].offset;
+    if(index===target)return sourceOffset(characters[position].offset);last=characters[position++].offset;
   }
   return target>=rendered.length?Math.min(source.length,last+1):null;
 }
