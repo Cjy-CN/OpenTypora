@@ -1,4 +1,4 @@
-import { codeAt,orderedSelection,type EditPlan } from '../core/formatting';
+import { codeAt,lineAt,orderedSelection,preferredNewline,type EditPlan } from '../core/formatting';
 import type { SelectionRange } from '../shared/contracts';
 import type { SettingsSnapshot } from '../shared/settings';
 function plan(from:number,to:number,insert:string,anchor:number,head=anchor):EditPlan{return {changes:[{from,to,insert}],selection:{anchor,head}};}
@@ -27,6 +27,40 @@ export function assistInput(text:string,from:number,to:number,input:string,setti
 export function deleteMatchingPair(text:string,selection:SelectionRange,settings:SettingsSnapshot,composing=false):EditPlan|null {
   if(composing||selection.anchor!==selection.head)return null;const position=selection.head,pairs=enabledPairs(settings,!!codeAt(text,position)),open=text[position-1],close=text[position];if(pairs[open]!==close||!open||text[position-2]==='\\')return null;return plan(position-1,position+1,'',position-1);
 }
-export function newlineBetweenFences(text:string,selection:SelectionRange):EditPlan|null {
-  const {from,to}=orderedSelection(selection);if(from!==to)return null;const before=text.slice(0,from),lineStart=before.lastIndexOf('\n')+1,prefix=text.slice(lineStart,from),suffix=text.slice(from).split('\n')[0];if(!/^`{3,}$/.test(prefix)||prefix!==suffix)return null;return plan(from,from,'\n\n',from+1);
+export function newlineBetweenFences(text:string,selection:SelectionRange,composing=false,newline=preferredNewline(text,'LF')):EditPlan|null {
+  const {from,to}=orderedSelection(selection);if(composing||from!==to)return null;const line=lineAt(text,from),prefix=text.slice(line.from,from),suffix=text.slice(from,line.to);if(!/^`{3,}$/.test(prefix)||prefix!==suffix)return null;return plan(from,from,newline+newline,from+newline.length);
+}
+
+/**
+ * Enter alignment is one source edit. Pass '\n' explicitly when working in CodeMirror's LF
+ * projection; otherwise this helper uses the document's existing/default newline convention.
+ * List and quote markers remain the responsibility of insertNewlineContinueMarkup.
+ */
+export function alignedNewline(text:string,selection:SelectionRange,settings:SettingsSnapshot,composing=false,newline=preferredNewline(text,settings['editor.lineEnding'])):EditPlan|null {
+  if(composing||!settings['editor.alignIndent'])return null;
+  const {from,to}=orderedSelection(selection);
+  if(from<0||to>text.length||text[from-1]==='\r'&&text[from]==='\n'||text[to-1]==='\r'&&text[to]==='\n')return null;
+  const line=lineAt(text,from),prefix=text.slice(line.from,from),indent=prefix.match(/^[ \t]*/)![0];
+  const code=codeAt(text,from);
+  if(!code&&/^[ \t]*(?:>|[-+*][ \t]+|\d{1,9}[.)][ \t]+)/.test(line.text))return null;
+  if(/^[ \t]*(?:`{3,}|~{3,})/.test(line.text)||newlineBetweenFences(text,selection,false,newline))return null;
+  let insert=newline+indent;
+  // For a literal paired code delimiter, place the caret on the inner indented line.
+  // Quoted delimiters stay literal and inherit indentation without expanding a string.
+  if(code&&from===to&&from>=code.contentFrom&&from<=code.contentTo){
+    const open=prefix.at(-1)??'',close=text[from]??'',pairs:Record<string,string>={'{':'}','[':']','(':')'};
+    let quote='',escaped=false;
+    for(const char of prefix.slice(0,-1)){
+      if(escaped){escaped=false;continue;}
+      if(char==='\\'){escaped=true;continue;}
+      if(quote){if(char===quote)quote='';}
+      else if('"\'`'.includes(char))quote=char;
+    }
+    if(!quote&&pairs[open]===close){
+      const unit=indent.includes('\t')?'\t':' '.repeat(settings['code.indent']);
+      insert=newline+indent+unit+newline+indent;
+      return plan(from,to,insert,from+newline.length+indent.length+unit.length);
+    }
+  }
+  return plan(from,to,insert,from+insert.length);
 }
