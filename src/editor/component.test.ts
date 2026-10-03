@@ -3,6 +3,7 @@ import { afterEach,beforeAll,describe,expect,it,vi } from 'vitest';
 import { act,createElement,createRef } from 'react';
 import { createRoot,type Root } from 'react-dom/client';
 import { EditorView } from '@codemirror/view';
+import { readFileSync } from 'node:fs';
 import { DocumentStore,createDocument } from '../core/document';
 import { DEFAULT_SETTINGS } from '../shared/settings';
 import type { DesktopBridge } from '../shared/contracts';
@@ -41,6 +42,13 @@ describe('same-source editor integration',()=>{
     await act(async()=>editor.store.replaceSession(createDocument('另一文档')));expect(editor.view.state.doc.toString()).toBe('另一文档');expect(editor.store.canUndo()).toBe(false);
   });
   it('edits YAML front matter as unformatted raw lines instead of a Setext heading',async()=>{const text='---\ntitle: 测试\ntags: [a, b]\n---\n\n# 正文',editor=await mount(text);const yaml=editor.host.querySelectorAll('.ot-yaml-line');expect(yaml).toHaveLength(4);expect([...yaml].map(line=>line.textContent).join('\n')).toBe('---\ntitle: 测试\ntags: [a, b]\n---');expect(editor.host.querySelector('.ot-yaml-line.ot-edit-heading')).toBeNull();expect(editor.store.getSnapshot().text).toBe(text);});
+  it('styles an active heading after loading front matter with the caret at the hash boundary',async()=>{
+    const text=readFileSync('docs/fixtures/advanced-feature-sample.md','utf8'),editor=await mount('old'),position=text.indexOf('# 扩展功能样例');
+    await act(async()=>editor.store.load({path:'C:\\fixtures\\advanced-feature-sample.md',text,encoding:'utf-8',bom:false,readonly:false,fingerprint:{hash:'fixture',modifiedAt:0,size:Buffer.byteLength(text)}}));
+    await act(async()=>editor.store.setSelection({anchor:position,head:position}));
+    const heading=[...editor.host.querySelectorAll('.cm-line')].find(line=>line.textContent==='# 扩展功能样例');
+    expect(heading).toBeTruthy();expect(heading?.classList.contains('ot-edit-heading')).toBe(true);expect(heading?.classList.contains('ot-h1')).toBe(true);expect(editor.host.querySelector('.frontmatter code')?.textContent).toContain('unknown_field: 原样保留');expect(editor.store.getSnapshot().text).toBe(text);expect(editor.store.getSnapshot().version).toBe(0);
+  });
   it('protects read-only source and defers structure commands during IME composition',async()=>{
     const editor=await mount('中文');const content=editor.host.querySelector('.cm-content')!;await act(async()=>content.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true,data:'中'})));expect(editor.store.getSnapshot().composing).toBe(true);expect(await editor.ref.current!.execute('format.bold')).toBe(false);expect(editor.store.getSnapshot().text).toBe('中文');
     await act(async()=>content.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'中文'})));expect(editor.store.getSnapshot().composing).toBe(false);

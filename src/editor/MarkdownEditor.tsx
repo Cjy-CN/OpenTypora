@@ -84,7 +84,7 @@ function intersects(from:number,to:number,selection:SelectionRange):boolean {con
 function buildDecorations(state:EditorState):DecorationSet {
   const config=state.field(previewConfiguration),projection=new SourceProjection(config.rawText),selection=projection.selectionToSource(state.selection.main),decorations:Range<Decoration>[]=[],blocks=config.sourceMode?[]:markdownBlocks(config.rawText);
   if(!config.sourceMode)for(const block of blocks){const from=projection.toView(block.from),to=projection.toView(block.to);if(from>=to)continue;
-    if(!intersects(block.from,block.to,selection)&&!config.composing){const end=projection.toView(previewReplacementEnd(config.rawText,block,selection,config.composing));decorations.push(Decoration.replace({widget:new PreviewWidget(block,config,state.field(searchState)),block:true}).range(from,end));}
+    if(!intersects(block.from,block.to,selection)&&!config.composing){const end=projection.toView(previewReplacementEnd(config.rawText,block,selection,config.composing));decorations.push(Decoration.replace({widget:new PreviewWidget(block,config,state.field(searchState)),block:true,inclusiveEnd:false}).range(from,end));}
     else {
       if(!config.composing&&!['code','yaml','math','html'].includes(block.kind))for(const definition of block.text.matchAll(/^ {0,3}\[\^([^\]\s]+)\]:[^\r\n]*/gm)){const end=projection.toView(block.from+definition.index!+definition[0].length);decorations.push(Decoration.widget({widget:new FootnoteBacklinkWidget(definition[1],config.rawText),side:1}).range(end));}
       if(block.kind==='yaml'){for(let number=state.doc.lineAt(from).number;number<=state.doc.lineAt(to).number;number++)decorations.push(Decoration.line({class:'ot-yaml-line'}).range(state.doc.line(number).from));continue;}
