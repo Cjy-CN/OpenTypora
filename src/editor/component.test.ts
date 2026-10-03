@@ -26,6 +26,34 @@ async function mount(text:string,overrides:Partial<EditorProps>={}){
   return {store,ref,host,view,render:async(next:Partial<EditorProps>)=>{props={...props,...next};await act(async()=>root.render(createElement(MarkdownEditor,{...props,ref})));}};
 }
 describe('same-source editor integration',()=>{
+  it('opens the actual README HTML header in reading view, with working modified links and intact source',async()=>{
+    const text=readFileSync('README.md','utf8'),editor=await mount(text),header=editor.host.querySelector('.ot-preview-html')!;
+    expect(header.querySelector('h1')?.textContent).toBe('OpenTypora');expect(header.querySelector('h1')?.getAttribute('align')).toBe('center');
+    expect(header.querySelectorAll('p[align="center"]')).toHaveLength(4);expect(header.querySelectorAll('img')).toHaveLength(3);
+    const opened=vi.fn();editor.view.dom.addEventListener('opentypora:open-link',opened);
+    await act(async()=>header.querySelector('a[href="README.zh-CN.md"]')!.dispatchEvent(new MouseEvent('mousedown',{button:0,ctrlKey:true,bubbles:true,cancelable:true})));
+    expect(opened).toHaveBeenCalledOnce();expect(editor.host.querySelector('.ot-preview-html')).not.toBeNull();
+    expect(editor.store.getSnapshot().selection).toEqual({anchor:0,head:0});expect(editor.store.getSnapshot().text).toBe(text);expect(editor.store.getSnapshot().version).toBe(0);expect(editor.store.canUndo()).toBe(false);
+    await act(async()=>header.querySelector('h1')!.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true,cancelable:true})));
+    expect(editor.host.querySelector('.ot-preview-html')).toBeNull();expect(editor.view.state.doc.toString()).toContain('<h1 align="center">OpenTypora</h1>');
+    await act(async()=>editor.view.contentDOM.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true})));
+    expect(editor.host.querySelector('.ot-preview-html h1')?.textContent).toBe('OpenTypora');expect(editor.store.getSnapshot().text).toBe(text);expect(editor.store.canUndo()).toBe(false);
+  });
+  it('keeps HTML edits and undo in the canonical source, and resets reading view across modes and document loads',async()=>{
+    const text='<h1 align="center">标题 😀</h1>\r\n<p>正文</p>\r\n\r\n# Outside',editor=await mount(text);
+    await act(async()=>editor.host.querySelector('.ot-preview-html h1')!.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true,cancelable:true})));
+    const position=editor.view.state.doc.toString().indexOf('标题');
+    await act(async()=>editor.view.dispatch({changes:{from:position,to:position,insert:'新'},selection:{anchor:position+1},userEvent:'input.type'}));
+    expect(editor.store.getSnapshot().text).toBe(text.replace('标题','新标题'));expect(editor.store.getSnapshot().lineEnding).toBe('CRLF');expect(editor.host.querySelector('.ot-preview-html')).toBeNull();
+    await act(async()=>editor.ref.current!.execute('edit.undo'));expect(editor.store.getSnapshot().text).toBe(text);
+    await editor.render({sourceMode:true});expect(editor.host.querySelector('.ot-preview-html')).toBeNull();
+    await editor.render({sourceMode:false});expect(editor.host.querySelector('.ot-preview-html h1')?.textContent).toBe('标题 😀');expect(editor.store.getSnapshot().text).toBe(text);
+    await act(async()=>editor.view.dispatch({selection:{anchor:1},userEvent:'select'}));expect(editor.host.querySelector('.ot-preview-html')).toBeNull();
+    await act(async()=>editor.store.load({path:'C:\\fixtures\\second.md',text:'<h1>Second file</h1>\n\nBody',encoding:'utf-8',bom:false,readonly:false,fingerprint:{hash:'second',modifiedAt:0,size:32}}));
+    expect(editor.host.querySelector('.ot-preview-html h1')?.textContent).toBe('Second file');expect(editor.store.getSnapshot().version).toBe(0);expect(editor.store.canUndo()).toBe(false);
+    await act(async()=>editor.ref.current!.execute('selection.all'));expect(editor.host.querySelector('.ot-preview-html')).toBeNull();expect(editor.view.state.selection.main.to).toBe(editor.view.state.doc.length);
+    await act(async()=>{editor.store.setSelection({anchor:0,head:0});editor.view.contentDOM.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));});expect(editor.host.querySelector('.ot-preview-html h1')?.textContent).toBe('Second file');
+  });
   it('renders rich inactive blocks and reveals a cross-block selection without mutating source',async()=>{
     const text='# 标题\r\n\r\n**粗体** 与 [链接](https://example.com)\r\n\r\n| A | B |\r\n| --- | --- |\r\n| 甲 | 😀 |',editor=await mount(text);
     expect(editor.host.querySelector('.ot-preview-block strong')?.textContent).toBe('粗体');expect(editor.host.querySelector('table')).not.toBeNull();const snapshot=editor.store.getSnapshot();
