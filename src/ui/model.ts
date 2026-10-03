@@ -1,4 +1,6 @@
 import type { DirectoryEntry, SearchMatch, SearchOptions, SelectionRange, TextChange } from '../shared/contracts';
+import {markdownLanguage} from '@codemirror/lang-markdown';
+import {sourceLines} from '../core/formatting';
 
 export interface OutlineItem { id: string; title: string; level: number; from: number; to: number; parent: string | null }
 export interface SearchResult { matches: SearchMatch[]; error: string | null; truncated: boolean }
@@ -31,26 +33,53 @@ export function recentEntries(value:unknown):RecentEntry[]{
   });
 }
 
-export function parseOutline(text: string): OutlineItem[] {
-  const lines = [...text.matchAll(/[^\r\n]*(?:\r\n|\n|\r|$)/g)].filter(match => match[0].length);
-  const items: OutlineItem[] = [],stack:OutlineItem[]=[]; let fence: {marker:string;length:number}|null=null, yaml=false;
-  lines.forEach((match,index)=>{
-    const line=match[0].replace(/[\r\n]+$/,''); const from=match.index!;
-    if(index===0&&/^---\s*$/.test(line)){yaml=true;return;}
-    if(yaml){if(/^(---|\.\.\.)\s*$/.test(line))yaml=false;return;}
-    const fenced=/^ {0,3}(`{3,}|~{3,})/.exec(line);
-    if(fenced){if(!fence)fence={marker:fenced[1][0],length:fenced[1].length};else if(fenced[1][0]===fence.marker&&fenced[1].length>=fence.length)fence=null;return;}
-    if(fence)return;
-    const atx=/^ {0,3}(#{1,6})(?:[ \t]+(.*?)|\s*)$/.exec(line);
-    const next=lines[index+1]?.[0].replace(/[\r\n]+$/,'');
-    const setext=!atx&&line.trim()&&next?/^ {0,3}(=+|-+)\s*$/.exec(next):null;
-    if(!atx&&!setext)return;
-    const level=atx?atx[1].length:(setext![1][0]==='='?1:2);
-    const title=(atx?(atx[2]??'').replace(/\s+#+\s*$/,''):line.trim()).replace(/!\[([^\]]*)\]\([^)]*\)/g,'$1').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/<[^>]+>/g,'').replace(/[*_`~]/g,'').trim();
-    while(stack.length&&stack.at(-1)!.level>=level)stack.pop();
-    const parent=stack.at(-1)?.id??null,item={id:`heading-${from}`,title:title||'无标题',level,from,to:from+line.length,parent};
-    items.push(item);stack.push(item);
-  });
+export function parseOutline(text: string,strict=true): OutlineItem[] {
+  const lines=sourceLines(text),protectedRanges:{from:number;to:number}[]=[],containerRanges:{from:number;to:number}[]=[],headings:{from:number;to:number;level:number;title:string}[]=[];
+  // Parse the canonical source. A compatibility projection must never supply source offsets.
+  markdownLanguage.parser.parse(text).iterate({enter(node){
+    if(node.name==='ListItem'||node.name==='Blockquote')containerRanges.push({from:node.from,to:node.to});
+    if(['FencedCode','CodeBlock','HTMLBlock'].includes(node.name)){
+      let to=node.to;
+      if(node.name==='HTMLBlock'&&!/^<(?:script|pre|style|textarea)(?:\s|>|$)|^<!--|^<\?|^<![A-Z]|^<!\[CDATA\[/i.test(text.slice(node.from,node.to))){
+        let low=0,high=lines.length;while(low<high){const middle=(low+high)>>>1;if(lines[middle].end<=node.from)low=middle+1;else high=middle;}
+        for(let index=low+1;index<lines.length&&lines[index].from<to;index++)if(!lines[index].text.replace(/^ {0,3}(?:> ?)+/,'').trim()){to=lines[index].from;break;}
+      }
+      protectedRanges.push({from:node.from,to});return false;
+    }
+    const heading=/^(ATX|Setext)Heading([1-6])$/.exec(node.name);if(!heading)return;
+    const raw=text.slice(node.from,node.to).replace(/[\r\n]+$/,''),title=heading[1]==='ATX'?raw.replace(/^#{1,6}[ \t]*/,'').replace(/\s+#+\s*$/,''):raw.replace(/(?:\r\n|\r|\n)[^\r\n]*$/,'');
+    headings.push({from:node.from,to:node.from+raw.length,level:Number(heading[2]),title});
+  }});
+  const overlaps=(from:number,to:number,ranges:{from:number;to:number}[])=>{let low=0,high=ranges.length;while(low<high){const middle=(low+high)>>>1;if(ranges[middle].to<=from)low=middle+1;else high=middle;}return !!ranges[low]&&ranges[low].from<to;};
+  const literalRanges=[...protectedRanges];
+  for(let index=0;index<lines.length;index++){
+    const line=lines[index];if(overlaps(line.from,line.end,literalRanges))continue;
+    if(index===0&&/^\uFEFF?---\s*$/.test(line.text)){
+      let end=index+1;while(end<lines.length&&!/^(---|\.\.\.)\s*$/.test(lines[end].text))end++;
+      protectedRanges.push({from:line.from,to:lines[Math.min(end,lines.length-1)].end});index=end;continue;
+    }
+    const math=/^ {0,3}(\$\$|\\\[)/.exec(line.text);if(!math)continue;
+    const closer=math[1]==='$$'?'$$':'\\]',rest=line.text.slice(math[0].length);let end=index;
+    if(!rest.includes(closer)){end++;while(end<lines.length&&!lines[end].text.includes(closer))end++;}
+    protectedRanges.push({from:line.from,to:lines[Math.min(end,lines.length-1)].end});index=end;
+  }
+  const merge=(values:{from:number;to:number}[])=>{const merged:{from:number;to:number}[]=[];for(const range of values.sort((a,b)=>a.from-b.from)){const previous=merged.at(-1);if(previous&&previous.to>=range.from)previous.to=Math.max(previous.to,range.to);else merged.push({...range});}return merged;};
+  const ranges=merge(protectedRanges),containers=merge(containerRanges);
+  const lineHeadings:typeof headings=[];
+  for(const line of lines){
+    const regular=/^ {0,3}(#{1,6})(?:[ \t]+(.*?)|\s*)$/.exec(line.text),atx=regular||(!strict?/^ {0,3}(#{1,6})(?=[^#\s])(.*)$/.exec(line.text):null);if(!atx||overlaps(line.from,line.end,ranges))continue;
+    const indent=line.text.indexOf('#'),from=line.from+indent;if(!regular&&indent>0&&overlaps(line.from,line.end,containers))continue;
+    lineHeadings.push({from,to:line.to,level:atx[1].length,title:(atx[2]??'').replace(/\s+#+\s*$/,'')});
+  }
+  // A newly recognized ATX heading interrupts a paragraph that was formerly a Setext heading.
+  const effectiveHeadings=headings.filter(heading=>!overlaps(heading.from,heading.to,lineHeadings)).concat(lineHeadings);
+  const items:OutlineItem[]=[],stack:OutlineItem[]=[];
+  for(const heading of effectiveHeadings.sort((a,b)=>a.from-b.from)){
+    if(overlaps(heading.from,heading.to,ranges))continue;
+    const title=heading.title.replace(/^ {0,3}(?:> ?)+/gm,'').replace(/\r\n|\r|\n/g,' ').replace(/!\[([^\]]*)\]\([^)]*\)/g,'$1').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/<[^>]+>/g,'').replace(/[*_`~]/g,'').trim();
+    while(stack.length&&stack.at(-1)!.level>=heading.level)stack.pop();
+    const item:OutlineItem={id:`heading-${heading.from}`,title:title||'无标题',level:heading.level,from:heading.from,to:heading.to,parent:stack.at(-1)?.id??null};items.push(item);stack.push(item);
+  }
   return items;
 }
 

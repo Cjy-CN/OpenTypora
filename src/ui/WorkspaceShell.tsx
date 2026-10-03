@@ -44,7 +44,7 @@ export function WorkspaceShell(props:WorkspaceShellProps){
  const [findOpen,setFindOpen]=useState(false),[replaceOpen,setReplaceOpen]=useState(false),[query,setQuery]=useState(''),[replacement,setReplacement]=useState(''),[searchOptions,setSearchOptions]=useState<SearchOptions>(SEARCH_OPTIONS),[matchIndex,setMatchIndex]=useState(0);
  const [fileQuery,setFileQuery]=useState(''),[fileOptions,setFileOptions]=useState<SearchOptions>(SEARCH_OPTIONS),[fileResults,setFileResults]=useState<FileSearchMatch[]>([]),[fileSearchError,setFileSearchError]=useState(''),[fileSearching,setFileSearching]=useState(false);
  const findInput=useRef<HTMLInputElement>(null),quickInput=useRef<HTMLInputElement>(null),mainRef=useRef<HTMLElement>(null),directoryEpoch=useRef(0),searchEpoch=useRef(0),pendingNavigation=useRef<{path:string;position:number;to?:number}|null>(null),searchVisited=useRef(false),actions=useRef<Record<string,(argument?:unknown)=>void|Promise<void>>>({});
- const outlineAnalysis=useOutline(document.text),outline=outlineAnalysis.value;
+ const outlineAnalysis=useOutline(document.text,settings['markdown.strict']),outline=outlineAnalysis.value;
  const currentHeading=[...outline].reverse().find(item=>item.from<=document.selection.head)?.id;
  const matches=useDocumentSearch(document.text,query,searchOptions);
  const fullStatistics=useTextStatistics(document.text,settings['appearance.readingSpeed']),fullStats=fullStatistics.value;

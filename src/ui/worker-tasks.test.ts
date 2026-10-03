@@ -2,7 +2,7 @@
 import {afterEach,describe,it,expect,vi} from 'vitest';
 import {act,createElement} from 'react';
 import {createRoot,type Root} from 'react-dom/client';
-import {useTextStatistics} from './useDocumentAnalysis';
+import {useOutline,useTextStatistics} from './useDocumentAnalysis';
 import {useDocumentSearch} from './useDocumentSearch';
 import {calculateReplacement,SEARCH_TIMEOUT_MS} from './search-task';
 import {statistics} from './model';
@@ -18,10 +18,12 @@ let root:Root|undefined,container:HTMLDivElement;
 afterEach(async()=>{if(root)await act(()=>root!.unmount());root=undefined;container?.remove();vi.unstubAllGlobals();vi.useRealTimers();FakeWorker.instances=[];});
 function mount(){vi.stubGlobal('Worker',FakeWorker);vi.useFakeTimers();container=document.createElement('div');document.body.append(container);root=createRoot(container);}
 function Statistics({text,speed}:{text:string;speed:number}){return createElement('output',null,JSON.stringify(useTextStatistics(text,speed)));}
+function Outline({text,strict}:{text:string;strict:boolean}){return createElement('output',null,JSON.stringify(useOutline(text,strict)));}
 const options={caseSensitive:false,wholeWord:false,regex:true};
 function Search({text,query}:{text:string;query:string}){return createElement('output',null,JSON.stringify(useDocumentSearch(text,query,options)));}
 const state=()=>JSON.parse(container.textContent??'{}');
 describe('background document tasks',()=>{
+ it('recomputes large-document outlines after strict mode changes and rejects the former answer',async()=>{mount();const text='###Loose\r\n'+ 'body '.repeat(5000);await act(()=>root!.render(createElement(Outline,{text,strict:true})));await act(()=>vi.advanceTimersByTime(0));const old=FakeWorker.instances[0];expect(old.postMessage).toHaveBeenCalledWith(expect.objectContaining({kind:'outline',strict:true,text}));await act(()=>root!.render(createElement(Outline,{text,strict:false})));expect(old.terminate).toHaveBeenCalled();await act(()=>vi.advanceTimersByTime(0));const current=FakeWorker.instances[1];expect(current.postMessage).toHaveBeenCalledWith(expect.objectContaining({strict:false}));await act(()=>old.deliver([]));expect(state().pending).toBe(true);await act(()=>current.deliver([{id:'heading-0',title:'Loose',level:3,from:0,to:8,parent:null}]));expect(state().value[0].title).toBe('Loose');expect(state().pending).toBe(false);});
  it('terminates old analysis tasks and rejects their late result',async()=>{
   mount();const first='old '.repeat(6000),second='new '.repeat(6000);
   await act(()=>root!.render(createElement(Statistics,{text:first,speed:382})));await act(()=>vi.advanceTimersByTime(60));const old=FakeWorker.instances[0];
