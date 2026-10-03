@@ -14,7 +14,9 @@
     "build": "npm run typecheck && vite build && node scripts/build-desktop.mjs",
     "check": "npm run typecheck && npm test && npm run build",
     "start": "electron .",
-    "package": "npm run build && electron-builder --win portable --publish never"
+    "package": "npm run build && electron-builder --win nsis --x64 --publish never",
+    "package:portable": "npm run build && electron-builder --win portable --x64 --publish never",
+    "test:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-installer.ps1"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.0.0",
@@ -69,8 +71,35 @@
       "package.json"
     ],
     "win": {
-      "target": "portable",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "include": "build/installer.nsh",
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "OpenTypora",
+      "uninstallDisplayName": "OpenTypora",
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": [
+        "en_US",
+        "zh_CN"
+      ]
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}-${arch}.${ext}"
     }
   },
   "overrides": {

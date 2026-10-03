@@ -9,14 +9,14 @@ import { Storage } from './services/storage';
 import { COMMANDS } from '../src/shared/command-catalog';
 import { checkMenuLayout } from './menu.smoke';
 import { checkSidebarWorkflow } from './sidebar.smoke';
+import { launchDocument } from '../src/shared/launch-document';
 const windows = new Set<BrowserWindow>();
 const allowedClose = new WeakSet<BrowserWindow>();
 protocol.registerSchemesAsPrivileged([{scheme:'opentypora-asset',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true}}]);
 const smokeTest = process.argv.includes('--smoke-test');
 const visualTest = process.argv.includes('--visual-test');
 if(smokeTest||visualTest)app.setPath('userData',join(tmpdir(),`opentypora-${visualTest?'visual':'smoke'}-${process.pid}`));
-const documentArgument=process.argv.indexOf('--document');
-const initialDocument=documentArgument>=0?process.argv[documentArgument+1]:process.argv.slice(app.isPackaged?1:2).find(value=>!value.startsWith('--')&&/\.(?:md|markdown|mdx|txt|rmd|qmd)$/i.test(value));
+const initialDocument=launchDocument(process.argv,app.isPackaged);
 async function createWindow(documentPath?:string) {
   const settings=await new Storage(app.getPath('userData')).loadSettings().catch(()=>({} as Record<string,unknown>));
   const integrated=settings['appearance.windowStyle']==='integrated';
