@@ -1,17 +1,19 @@
 import type { DirectoryEntry, SearchMatch, SearchOptions, SelectionRange, TextChange } from '../shared/contracts';
 import {markdownLanguage} from '@codemirror/lang-markdown';
 import {sourceLines} from '../core/formatting';
+export {parentDirectory} from '../core/paths';
 
 export interface OutlineItem { id: string; title: string; level: number; from: number; to: number; parent: string | null }
 export interface SearchResult { matches: SearchMatch[]; error: string | null; truncated: boolean }
 const MAX_MATCHES = 20000;
 export function displayName(path: string | null) { return path?.split(/[\\/]/).filter(Boolean).at(-1) || '未命名'; }
-export function parentDirectory(path: string) { return path.replace(/[\\/][^\\/]*$/, ''); }
 export function isWithinRoot(path:string,root:string){const base=root.replace(/[\\/]+$/,'').toLowerCase(),value=path.toLowerCase();return value===base||value.startsWith(base+'\\')||value.startsWith(base+'/');}
 export function relativePath(path: string, root: string | null) { return root && isWithinRoot(path,root) ? path.slice(root.replace(/[\\/]+$/,'').length).replace(/^[\\/]/, '') : path; }
 export function isMarkdown(path: string) { return /\.(md|markdown|mdown|mkd|mkdn|mdwn|mmd|txt|text|mdtext|mdtxt|rmd|rmarkdown|qmd|apib|mdx)$/i.test(path); }
 export function flattenEntries(entries: DirectoryEntry[]): DirectoryEntry[] { return entries.flatMap(entry => entry.directory ? flattenEntries(entry.children ?? []) : [entry]); }
 export function sortEntries(entries: DirectoryEntry[]) { return [...entries].sort((a,b)=>Number(b.directory)-Number(a.directory)||a.name.localeCompare(b.name,'zh-CN',{numeric:true})); }
+/** Filename filtering is literal and independent of folder names and document contents. */
+export function matchesFileName(path:string,query:string) { return displayName(path).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()); }
 
 export interface RecentEntry {path:string;directory:boolean;openedAt?:number}
 /** Accept the current service shape and historical installations without guessing folder paths. */

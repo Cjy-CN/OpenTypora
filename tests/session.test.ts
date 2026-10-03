@@ -40,6 +40,37 @@ const relocate = (store: DocumentStore) => vi.fn(async (previous, destination) =
 }) as NonNullable<SessionPrompts['relocateAssets']>;
 
 describe('file session transitions', () => {
+  it.each([
+    ['E:/notes/中文.md', 'E:/notes'],
+    ['C:\\notes\\a.md', 'C:\\notes'],
+    ['C:\\root.md', 'C:\\'],
+    ['E:/root.md', 'E:/'],
+    ['\\\\server\\share\\a.md', '\\\\server\\share'],
+    ['/root.md', '/'],
+  ])('associates an opened file %s with its own directory %s', async (path, directory) => {
+    const store = stored(); store.patchMetadata({rootDirectory:'E:/previous'});
+    const bridge = bridgeFor({open:vi.fn(async () => ok(opened(path, '# next')))});
+    expect(await new SessionCoordinator(store, bridge, prompts()).open(path)).toBe(true);
+    expect(store.getSnapshot()).toMatchObject({path,rootDirectory:directory,text:'# next',version:0,dirty:false});
+    expect(bridge.open).toHaveBeenCalledWith(path);
+  });
+
+  it('keeps directory association local to each window and updates it when switching folders', async () => {
+    const first = stored(), second = stored();
+    const bridge = bridgeFor({open:vi.fn(async path => ok(opened(path)))});
+    const one = new SessionCoordinator(first,bridge,prompts()),two = new SessionCoordinator(second,bridge,prompts());
+    await one.open('E:/one/a.md'); await two.open('E:/two/b.md');
+    await one.open('E:/three/c.md');
+    expect(first.getSnapshot().rootDirectory).toBe('E:/three');
+    expect(second.getSnapshot().rootDirectory).toBe('E:/two');
+  });
+
+  it.each([ok(null),error('OPEN_FAILED')])('preserves the current directory after a cancelled or failed open', async result => {
+    const store = stored();store.patchMetadata({rootDirectory:'E:/manual'});const previous=store.getSnapshot();
+    const bridge = bridgeFor({open:vi.fn(async () => result)});
+    expect(await new SessionCoordinator(store,bridge,prompts()).open()).toBe(false);
+    expect(store.getSnapshot()).toEqual(previous);
+  });
   it('retains later edits and blocks switching after a same-path save', async () => {
     const store = stored(); store.replaceText('changed');
     const pending = deferred<Result<SavedFile | null>>();

@@ -1,8 +1,14 @@
 import { describe,it,expect } from 'vitest';
 import { DocumentStore,createDocument } from '../core/document';
-import { parseOutline,searchDocument,replacementChanges,statistics,fuzzyFiles,relativePath,recentEntries } from './model';
+import { parseOutline,searchDocument,replacementChanges,statistics,fuzzyFiles,relativePath,recentEntries,matchesFileName } from './model';
 const options={caseSensitive:false,wholeWord:false,regex:false};
 describe('workspace source navigation',()=>{
+  it('filters literal basenames without matching parent folders',()=>{
+    expect(matchesFileName('C:/README/other.md','README')).toBe(false);
+    expect(matchesFileName('C:/notes/ReadMe.MD',' readme ')).toBe(true);
+    expect(matchesFileName('C:\\notes\\中文[1].md','中文[1]')).toBe(true);
+    expect(matchesFileName('C:/notes/any.md','')).toBe(true);
+  });
   it('ignores YAML/fences and preserves UTF-16 positions across CRLF',()=>{const text='---\r\ntitle: a\r\n---\r\n# 中文 😀\r\n```md\r\n# hidden\r\n```\r\nSetext\r\n---\r\n### Child\r\n#\r\n';const headings=parseOutline(text);expect(headings.map(item=>item.title)).toEqual(['中文 😀','Setext','Child','无标题']);expect(headings[0].from).toBe(text.indexOf('# 中文'));expect(headings[2].parent).toBe(headings[1].id);});
   it('finds unicode and zero-length regex without infinite loops',()=>{expect(searchDocument('中文 😀 x X','x',options).matches).toHaveLength(2);expect(searchDocument('😀a','(?=.)',{...options,regex:true}).matches.map(match=>match.from)).toEqual([0,2]);expect(searchDocument('aaa','(a+)+$',{...options,regex:true}).error).toBeTruthy();expect(searchDocument('abc','[',{...options,regex:true}).error).toBeTruthy();});
   it('respects whole-word and case-sensitive options',()=>{expect(searchDocument('cat scatter CAT','cat',{...options,wholeWord:true}).matches).toHaveLength(2);expect(searchDocument('cat CAT','cat',{...options,caseSensitive:true}).matches).toHaveLength(1);});

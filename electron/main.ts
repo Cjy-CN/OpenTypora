@@ -8,6 +8,7 @@ import { createPlatform, resolveAuthorizedAsset } from './services';
 import { Storage } from './services/storage';
 import { COMMANDS } from '../src/shared/command-catalog';
 import { checkMenuLayout } from './menu.smoke';
+import { checkSidebarWorkflow } from './sidebar.smoke';
 const windows = new Set<BrowserWindow>();
 const allowedClose = new WeakSet<BrowserWindow>();
 protocol.registerSchemesAsPrivileged([{scheme:'opentypora-asset',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true}}]);
@@ -64,9 +65,10 @@ app.whenReady().then(async()=>{
         initial.webContents.send('opentypora:command','selection.documentStart');await new Promise(resolve=>setTimeout(resolve,3000));
         const report=await initial.webContents.executeJavaScript(`(async()=>({title:document.title,editor:!!document.querySelector('.cm-editor'),bridge:typeof window.opentypora?.save==='function',info:await window.opentypora.info(),nodeIsolated:typeof window.require==='undefined',mathSvg:!!document.querySelector('[data-math] svg'),diagramSvg:document.querySelectorAll('[data-diagram] svg').length===3 && !!document.querySelector('[data-diagram=\"sequence\"] svg') && !!document.querySelector('[data-diagram=\"flow\"] svg'),renderErrors:document.querySelectorAll('.render-error').length}))()`);
         const menus=await checkMenuLayout(initial);
+        const sidebar=await checkSidebarWorkflow(createWindow);
         const passed=report.editor&&report.bridge&&report.info.ok&&report.nodeIsolated&&roundtrip===sample&&report.mathSvg&&report.diagramSvg&&!report.renderErrors;
         report.sourceRoundtrip=roundtrip===sample;
-        console.log(JSON.stringify({desktopSmoke:passed,...report,menus}));clearTimeout(timeout);app.exit(passed?0:1);
+        console.log(JSON.stringify({desktopSmoke:passed,...report,menus,sidebar}));clearTimeout(timeout);app.exit(passed?0:1);
       }catch(error){console.error(error);clearTimeout(timeout);app.exit(1);}
     });
   }

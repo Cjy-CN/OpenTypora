@@ -1,5 +1,6 @@
 import type { DocumentStore } from '../core/document';
 import { createDocument } from '../core/document';
+import { parentDirectory } from '../core/paths';
 import type { DesktopBridge, DocumentSession, SavedFile } from '../shared/contracts';
 
 export type LeaveDecision = 'save' | 'discard' | 'cancel';
@@ -153,7 +154,7 @@ export class SessionCoordinator {
         if (!result.value) return false;
         if (!this.unchanged(previous)) return this.changed(previous);
         this.store.load(result.value);
-        if (previous.rootDirectory) this.store.patchMetadata({ rootDirectory: previous.rootDirectory });
+        this.store.patchMetadata({ rootDirectory: parentDirectory(result.value.path) });
         await this.deleteRecovery(previous);
         return true;
       } catch (error) { return this.failed(previous, error); }
