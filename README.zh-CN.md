@@ -6,7 +6,18 @@
   <img alt="Electron 44" src="https://img.shields.io/badge/Electron-44-47848F">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white">
 </p>
-<p align="center"><a href="#功能">功能</a> · <a href="#安装">安装</a> · <a href="#开发">开发</a> · <a href="docs/README.md">项目文档</a> · <a href="https://github.com/Cjy-CN/OpenTypora/issues">问题反馈</a></p>
+<p align="center"><a href="#下载已打包版本">下载</a> · <a href="#功能">功能</a> · <a href="#安装">安装</a> · <a href="#开发">开发</a> · <a href="docs/README.md">项目文档</a> · <a href="https://github.com/Cjy-CN/OpenTypora/issues">问题反馈</a></p>
+
+## 下载已打包版本
+
+**可以直接从 [GitHub Releases](https://github.com/Cjy-CN/OpenTypora/releases/latest) 下载使用，无需安装 Node.js、npm 或自行编译。**
+
+| 版本 0.1.0 · Windows 64 位 | 下载与使用方式 |
+| --- | --- |
+| **安装版（推荐）** | [下载 OpenTypora 安装包](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.0/OpenTypora-Setup-0.1.0-x64.exe)，运行安装向导后启动。包含快捷方式、Markdown 右键打开与卸载程序。 |
+| **便携版** | [下载 OpenTypora 便携版](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.0/OpenTypora-Portable-0.1.0-x64.exe)，双击直接运行，无需安装；不会自动注册文件打开入口或卸载程序。 |
+
+也可在 Release 页面展开 **Assets** 下载 `.exe` 文件。**Source code（zip / tar.gz）** 是源码压缩包，不能直接作为应用运行。当前构建尚未配置生产代码签名。
 
 ![OpenTypora 即时编辑器：文件导航、表格、代码与数学公式](docs/images/workspace.png)
 

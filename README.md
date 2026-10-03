@@ -6,7 +6,18 @@
   <img alt="Electron 44" src="https://img.shields.io/badge/Electron-44-47848F">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white">
 </p>
-<p align="center"><a href="#features">Features</a> · <a href="#installation">Installation</a> · <a href="#development">Development</a> · <a href="docs/README.md">Documentation</a> · <a href="https://github.com/Cjy-CN/OpenTypora/issues">Issues</a></p>
+<p align="center"><a href="#download-for-windows">Download</a> · <a href="#features">Features</a> · <a href="#installation">Installation</a> · <a href="#development">Development</a> · <a href="docs/README.md">Documentation</a> · <a href="https://github.com/Cjy-CN/OpenTypora/issues">Issues</a></p>
+
+## Download for Windows
+
+**Ready-to-run builds are available in [GitHub Releases](https://github.com/Cjy-CN/OpenTypora/releases/latest).** You do not need Node.js, npm or build tools to use them.
+
+| Version 0.1.0 · Windows x64 | Download and use |
+| --- | --- |
+| **Installer — recommended** | [Download OpenTypora Setup](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.0/OpenTypora-Setup-0.1.0-x64.exe), run setup, then launch OpenTypora. Includes shortcuts, Markdown right-click integration and an uninstaller. |
+| **Portable** | [Download OpenTypora Portable](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.0/OpenTypora-Portable-0.1.0-x64.exe) and double-click to run without installation. Does not automatically register file-opening entries or an uninstaller. |
+
+On the release page, expand **Assets** and choose an `.exe` file. **Source code (zip / tar.gz)** contains source files and is not a ready-to-run application. Current builds are unsigned.
 
 ![OpenTypora live editor with file navigation, tables, code and mathematics](docs/images/workspace.png)
 
