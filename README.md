@@ -146,4 +146,4 @@ Use [Issues](https://github.com/Cjy-CN/OpenTypora/issues) for reproducible probl
 
 ## License
 
-This repository has not declared an open-source license. Use and distribution are governed by the repository owner's authorization. Third-party components retain their respective licenses; their notices are included in packaged builds.
+OpenTypora is licensed under the [MIT License](LICENSE). Third-party components retain their respective licenses; their notices are included in packaged builds.

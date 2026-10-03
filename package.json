@@ -2,6 +2,7 @@
   "name": "opentypora",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "A local Markdown editor with a shared source document model",
   "type": "module",
   "main": "dist-electron/main.cjs",
@@ -68,7 +69,8 @@
     "files": [
       "dist/**",
       "dist-electron/**",
-      "package.json"
+      "package.json",
+      "LICENSE"
     ],
     "win": {
       "target": [
