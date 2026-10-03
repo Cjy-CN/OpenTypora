@@ -12,3 +12,4 @@ playwright-report/
 !.env.example
 .typora-inspection.png
 
+.agents/
