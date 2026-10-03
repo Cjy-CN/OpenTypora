@@ -62,7 +62,16 @@ describe('same-source editor integration',()=>{
   });
   it('navigates to an editable footnote definition and back to the same reference',async()=>{
     const text='# 标题\n\n正文[^abc]\n\n[^abc]: 脚注内容',editor=await mount(text);const reference=editor.host.querySelector('.footnote-ref a')!;expect(reference).not.toBeNull();await act(async()=>reference.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,button:0})));expect(editor.store.getSnapshot().selection.head).toBe(text.lastIndexOf('[^abc]'));
-    const backlink=editor.host.querySelector('.footnote-backref')!;await act(async()=>backlink.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,button:0})));expect(editor.store.getSnapshot().selection.head).toBe(text.indexOf('[^abc]'));expect(editor.store.getSnapshot().text).toBe(text);
+    const backlink=editor.host.querySelector('.ot-live-footnote-backref')!;expect(backlink).not.toBeNull();await act(async()=>backlink.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,button:0})));expect(editor.store.getSnapshot().selection.head).toBe(text.indexOf('[^abc]'));expect(editor.store.getSnapshot().text).toBe(text);
+  });
+  it('returns from an active footnote definition to every repeated reference without editing source',async()=>{
+    const text='# 标题\r\n\r\n正文[^note]，重复[^note]\r\n\r\n另一块[^note]\r\n\r\n[^note]: 正文 **强调**',editor=await mount(text),positions=[...text.matchAll(/\[\^note\](?!:)/g)].map(match=>match.index!);
+    for(let index=0;index<positions.length;index++){
+      await act(async()=>editor.store.setSelection({anchor:text.lastIndexOf('[^note]'),head:text.lastIndexOf('[^note]')}));
+      const backlinks=editor.host.querySelectorAll('.ot-live-footnote-backref');expect(backlinks).toHaveLength(3);
+      await act(async()=>backlinks[index].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,button:0})));
+      expect(editor.store.getSnapshot().selection.head).toBe(positions[index]);expect(editor.store.getSnapshot().text).toBe(text);expect(editor.store.getSnapshot().version).toBe(0);
+    }
   });
   it('resolves local Markdown through the authorized bridge without allowing anchor default navigation',async()=>{
     const action=vi.fn(async()=>({ok:true,value:{path:'C:\\docs\\另一.md',url:'opentypora-asset://local/x'}})),openExternal=vi.fn(),onCommand=vi.fn(),bridge={systemAction:action,openExternal} as unknown as DesktopBridge,editor=await mount('# 标题\n\n[打开](另一.md)',{bridge,onCommand});const link=editor.host.querySelector<HTMLAnchorElement>('.ot-preview-block a')!;await act(async()=>link.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,cancelable:true,button:0,ctrlKey:true})));expect(action).toHaveBeenCalledWith('assets.resolve',{url:encodeURI('另一.md'),documentPath:null});expect(onCommand).toHaveBeenCalledWith('file.open','C:\\docs\\另一.md');expect(openExternal).not.toHaveBeenCalled();const click=new MouseEvent('click',{bubbles:true,cancelable:true});expect(link.dispatchEvent(click)).toBe(false);expect(editor.store.getSnapshot().text).toBe('# 标题\n\n[打开](另一.md)');

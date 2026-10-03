@@ -18,6 +18,7 @@ import { EDITOR_COMMAND_IDS,canExecuteEditorCommand,clipboardRange,commitPlan,ex
 import { htmlToMarkdown } from './html-paste';
 import { assistInput,deleteMatchingPair,newlineBetweenFences } from './input-assistance';
 import { hitRenderedText } from './preview-position';
+import { footnoteBacklinks,footnoteReferencePositions,liveFootnoteTarget,liveReferences,previewReplacementEnd,renderLiveBlock } from './live-render';
 import './editor.css';
 export { EDITOR_COMMAND_IDS,canExecuteEditorCommand } from './commands';
 
@@ -33,11 +34,11 @@ const searchState=StateField.define<SearchState>({create:()=>({matches:[],curren
 const htmlCache=new Map<string,string>();
 function settingsKey(settings:SettingsSnapshot):string{return JSON.stringify(settings);}
 function renderBlock(block:MarkdownBlock,configuration:PreviewConfig):string {
-  const references=configuration.rawText.match(/^ {0,3}\[[^\]\n]+\]:[^\n]*(?:\n(?: {2,}|\t)[^\n]*)*/gm)?.join('\n')??'';
-  const key=[block.kind,block.text,references,settingsKey(configuration.settings),configuration.path].join('\u0000');const cached=htmlCache.get(key);if(cached!==undefined)return cached;
+  const references=liveReferences(configuration.rawText),backrefs=[...block.text.matchAll(/^ {0,3}\[\^([^\]\s]+)\]:/gm)].map(match=>footnoteReferencePositions(configuration.rawText,match[1]).join(','));
+  const key=[block.from,block.kind,block.text,references,backrefs,settingsKey(configuration.settings),configuration.path].join('\u0000');const cached=htmlCache.get(key);if(cached!==undefined)return cached;
   let html:string;
   if(block.kind==='toc'){const full=renderMarkdown(configuration.rawText,configuration.settings,{path:configuration.path}),document=new DOMParser().parseFromString(full,'text/html');html=document.querySelector('.markdown-toc')?.outerHTML??'<nav class="markdown-toc">暂无标题</nav>';}
-  else html=renderMarkdown(block.text+(references?'\n\n'+references:''),configuration.settings,{path:configuration.path});
+  else html=renderLiveBlock(block,configuration.rawText,configuration.settings,configuration.path);
   if(htmlCache.size>=250)htmlCache.delete(htmlCache.keys().next().value!);htmlCache.set(key,html);return html;
 }
 class PreviewWidget extends WidgetType {
@@ -52,7 +53,7 @@ class PreviewWidget extends WidgetType {
     element.addEventListener('mousedown',event=>{
       if(event.button!==0||(event.target as Element).closest('input'))return;
       const link=(event.target as Element).closest<HTMLAnchorElement>('a[href]');
-      if(link&&/^#fn(?:ref)?\d+/.test(link.getAttribute('href')??'')){event.preventDefault();const href=link.getAttribute('href')!,number=Number(href.match(/\d+/)?.[0]??1),references=[...new Set([...this.block.text.matchAll(/\[\^([^\]]+)\](?!:)/g)].map(match=>match[1]))],id=references[number-1];if(id){const configuration=view.state.field(previewConfiguration);let position=-1;if(href.startsWith('#fnref'))position=this.block.from+this.block.text.indexOf(`[^${id}]`);else {const escaped=id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),definition=new RegExp(`^ {0,3}\\[\\^${escaped}\\]:`,'m').exec(configuration.rawText);position=definition?.index??-1;}if(position>=0){const projected=new SourceProjection(configuration.rawText).toView(position);view.dispatch({selection:{anchor:projected},effects:EditorView.scrollIntoView(projected,{y:'center'})});view.focus();}else view.dom.dispatchEvent(new CustomEvent('opentypora:editor-error',{bubbles:true,detail:{message:`缺少脚注定义：${id}`}}));}return;}
+      if(link?.dataset.footnoteLabel){event.preventDefault();const configuration=view.state.field(previewConfiguration),position=liveFootnoteTarget(configuration.rawText,link);if(position!==null){const projected=new SourceProjection(configuration.rawText).toView(position);view.dispatch({selection:{anchor:projected},effects:EditorView.scrollIntoView(projected,{y:'center'})});view.focus();}else view.dom.dispatchEvent(new CustomEvent('opentypora:editor-error',{bubbles:true,detail:{message:`找不到脚注目标：${link.dataset.footnoteLabel}`}}));return;}
       if(link&&(event.ctrlKey||event.metaKey)){event.preventDefault();view.dom.dispatchEvent(new CustomEvent('opentypora:open-link',{bubbles:true,detail:{url:link.getAttribute('href')}}));return;}
       if(link&&link.getAttribute('href')?.startsWith('#')&&this.block.kind==='toc'){event.preventDefault();view.dom.dispatchEvent(new CustomEvent('opentypora:open-link',{bubbles:true,detail:{url:link.getAttribute('href')}}));return;}
       event.preventDefault();const config=view.state.field(previewConfiguration),projection=new SourceProjection(config.rawText),rectangle=element.getBoundingClientRect(),ratio=Math.max(0,Math.min(1,(event.clientY-rectangle.top)/Math.max(1,rectangle.height))),lines=this.block.text.split(/\r\n|\n|\r/);let raw=this.block.from;
@@ -63,9 +64,18 @@ class PreviewWidget extends WidgetType {
       if(raw>0&&/[\uDC00-\uDFFF]/.test(config.rawText[raw]??''))raw--;
       const position=projection.toView(raw),anchor=event.shiftKey?view.state.selection.main.anchor:position;view.dispatch({selection:{anchor,head:position},scrollIntoView:true});view.focus();
     });
-    element.addEventListener('click',event=>{const link=(event.target as Element).closest('a[href]');if(!link)return;event.preventDefault();event.stopPropagation();if(event.detail===0&&(event.ctrlKey||event.metaKey))view.dom.dispatchEvent(new CustomEvent('opentypora:open-link',{bubbles:true,detail:{url:link.getAttribute('href')}}));});
+    element.addEventListener('click',event=>{const link=(event.target as Element).closest<HTMLElement>('a[href]');if(!link)return;event.preventDefault();event.stopPropagation();if(event.detail===0&&link.dataset.footnoteLabel){const configuration=view.state.field(previewConfiguration),target=liveFootnoteTarget(configuration.rawText,link);if(target!==null){const position=new SourceProjection(configuration.rawText).toView(target);view.dispatch({selection:{anchor:position},effects:EditorView.scrollIntoView(position,{y:'center'})});view.focus();}}else if(event.detail===0&&(event.ctrlKey||event.metaKey))view.dom.dispatchEvent(new CustomEvent('opentypora:open-link',{bubbles:true,detail:{url:link.getAttribute('href')}}));});
     queueMicrotask(()=>{if(element.isConnected)void hydrateDiagrams(element,this.configuration.settings).then(()=>{if(element.isConnected)view.requestMeasure();}).catch(error=>{if(element.isConnected){const message=document.createElement('small');message.className='ot-render-error';message.textContent=String(error);element.append(message);}});});
     return element;
+  }
+  ignoreEvent(){return true;}
+}
+class FootnoteBacklinkWidget extends WidgetType {
+  constructor(readonly label:string,readonly rawText:string){super();}
+  eq(other:FootnoteBacklinkWidget){return this.label===other.label&&this.rawText===other.rawText;}
+  toDOM(view:EditorView){
+    const element=footnoteBacklinks(this.rawText,this.label),navigate=(event:MouseEvent)=>{const link=(event.target as Element).closest<HTMLElement>('a[data-footnote-label]');if(!link)return;event.preventDefault();event.stopPropagation();const configuration=view.state.field(previewConfiguration),target=liveFootnoteTarget(configuration.rawText,link);if(target!==null){const position=new SourceProjection(configuration.rawText).toView(target);view.dispatch({selection:{anchor:position},effects:EditorView.scrollIntoView(position,{y:'center'})});view.focus();}};
+    element.addEventListener('mousedown',navigate);element.addEventListener('click',event=>{event.preventDefault();if(event.detail===0)navigate(event);});return element;
   }
   ignoreEvent(){return true;}
 }
@@ -74,8 +84,9 @@ function intersects(from:number,to:number,selection:SelectionRange):boolean {con
 function buildDecorations(state:EditorState):DecorationSet {
   const config=state.field(previewConfiguration),projection=new SourceProjection(config.rawText),selection=projection.selectionToSource(state.selection.main),decorations:Range<Decoration>[]=[],blocks=config.sourceMode?[]:markdownBlocks(config.rawText);
   if(!config.sourceMode)for(const block of blocks){const from=projection.toView(block.from),to=projection.toView(block.to);if(from>=to)continue;
-    if(!intersects(block.from,block.to,selection)&&!config.composing){const newline=config.rawText.slice(block.to).match(/^(?:\r\n|\n|\r)/)?.[0],end=projection.toView(block.to+(newline?.length??0));decorations.push(Decoration.replace({widget:new PreviewWidget(block,config,state.field(searchState)),block:true}).range(from,end));}
+    if(!intersects(block.from,block.to,selection)&&!config.composing){const end=projection.toView(previewReplacementEnd(config.rawText,block,selection,config.composing));decorations.push(Decoration.replace({widget:new PreviewWidget(block,config,state.field(searchState)),block:true}).range(from,end));}
     else {
+      if(!config.composing&&!['code','yaml','math','html'].includes(block.kind))for(const definition of block.text.matchAll(/^ {0,3}\[\^([^\]\s]+)\]:[^\r\n]*/gm)){const end=projection.toView(block.from+definition.index!+definition[0].length);decorations.push(Decoration.widget({widget:new FootnoteBacklinkWidget(definition[1],config.rawText),side:1}).range(end));}
       if(block.kind==='yaml'){for(let number=state.doc.lineAt(from).number;number<=state.doc.lineAt(to).number;number++)decorations.push(Decoration.line({class:'ot-yaml-line'}).range(state.doc.line(number).from));continue;}
       if(block.kind==='heading'){const line=state.doc.lineAt(from),heading=/^ {0,3}(#{1,6})(?:\s|$)/.exec(line.text);if(heading){decorations.push(Decoration.line({class:`ot-edit-heading ot-h${heading[1].length}`}).range(line.from));if(!config.settings['editor.showActiveSource']&&selection.anchor===selection.head&&selection.head>block.from+heading[0].length&&!config.composing)decorations.push(Decoration.replace({}).range(from,from+heading[0].length));}}
       if(block.kind==='code'){const code=codeAt(config.rawText,block.from);if(code){let number=1;for(let line=state.doc.lineAt(from);line.from<=to;line=state.doc.line(Math.min(state.doc.lines,line.number+1))){decorations.push(Decoration.line({class:`ot-code-line${config.settings['code.wrap']?' ot-code-wrap':''}`,attributes:config.settings['code.lineNumbers']&&line.from>from&&line.to<to?{'data-code-line':String(number++)}:{}}).range(line.from));if(line.number===state.doc.lines||line.to>=to)break;}}}
