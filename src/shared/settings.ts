@@ -27,7 +27,7 @@ const CHOICES: Partial<Record<SettingsKey,string[]>> = { 'file.startup':['new','
 export const SETTINGS_SCHEMA: readonly SettingDefinition[] = Object.entries(DEFAULT_SETTINGS).map(([key,value]) => {
   const typed = key as SettingsKey;
   const numeric = typeof value === 'number';
-  return { key: typed, category: CATEGORIES[key.split('.')[0]], label: LABELS[typed] ?? key, type: typeof value as SettingDefinition['type'], scope: key.startsWith('export.') ? 'export' : 'global', effect: ['appearance.windowStyle','general.language'].includes(key) ? 'restart' : 'immediate', choices: CHOICES[typed], ...(numeric ? { min: key.includes('readingSpeed') ? 1 : key.includes('zoom') ? 25 : 1, max: key.includes('readingSpeed') ? 5000 : key.includes('zoom') ? 300 : key.includes('fontSize') ? 72 : 16 } : {}) };
+  return { key: typed, category: CATEGORIES[key.split('.')[0]], label: LABELS[typed] ?? key, type: typeof value as SettingDefinition['type'], scope: key.startsWith('export.') ? 'export' : 'global', effect: key==='appearance.windowStyle' ? 'restart' : 'immediate', choices: CHOICES[typed], ...(numeric ? { min: key.includes('readingSpeed') ? 1 : key.includes('zoom') ? 25 : 1, max: key.includes('readingSpeed') ? 5000 : key.includes('zoom') ? 300 : key.includes('fontSize') ? 72 : 16 } : {}) };
 });
 export function validateSetting(key: string, value: unknown): Result<void> {
   const spec = SETTINGS_SCHEMA.find(item => item.key === key);
@@ -44,7 +44,7 @@ export class SettingsStore {
   private listeners = new Set<() => void>();
   getSnapshot = (): SettingsSnapshot => this.values;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => this.listeners.delete(listener); };
-  set(key: string, value: unknown): Result<void> { const check = validateSetting(key,value); if (!check.ok) return check; this.values = { ...this.values, [key]: value }; this.listeners.forEach(listener => listener()); return success(undefined); }
+  set(key: string, value: unknown): Result<void> { const check = validateSetting(key,value); if (!check.ok) return check; if(this.values[key as SettingsKey]===value)return success(undefined);this.values = { ...this.values, [key]: value }; this.listeners.forEach(listener => listener()); return success(undefined); }
   load(values: Record<string,unknown>) { const rejected: string[] = []; for (const [key,value] of Object.entries(values)) { if (!this.set(key,value).ok) rejected.push(key); } return rejected; }
   reset() { this.values = { ...DEFAULT_SETTINGS }; this.listeners.forEach(listener => listener()); }
 }

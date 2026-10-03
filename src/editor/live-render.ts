@@ -4,7 +4,16 @@ import { markdownLanguage } from '@codemirror/lang-markdown';
 import { markdownBlocks, orderedSelection, sourceLines, type MarkdownBlock } from '../core/formatting';
 import type { SelectionRange } from '../shared/contracts';
 import type { SettingsSnapshot } from '../shared/settings';
-import { escapeHtml, renderMarkdown } from '../render/markdown';
+import { displayEquationPositions,escapeHtml, renderMarkdown } from '../render/markdown';
+import {prepareMarkdownSource} from '../render/syntax-compat';
+
+/** List token maps are mapped back through original lines, never projected character offsets. */
+export function liveMarkdownBlocks(text:string,settings:SettingsSnapshot):MarkdownBlock[]{
+  const blocks=markdownBlocks(text);if(settings['markdown.strict'])return blocks;
+  const lines=sourceLines(text),ranges:{from:number;to:number}[]=[],tokens=new MarkdownIt({html:true}).parse(prepareMarkdownSource(text,settings),{});let depth=0;
+  for(const token of tokens){if(token.type==='bullet_list_open'||token.type==='ordered_list_open'){if(depth++===0&&token.map)ranges.push({from:lines[token.map[0]]?.from??text.length,to:lines[token.map[1]-1]?.to??text.length});}else if(token.type==='bullet_list_close'||token.type==='ordered_list_close')depth--;}
+  const result:MarkdownBlock[]=[];let index=0;for(const range of ranges){while(index<blocks.length&&blocks[index].to<=range.from)result.push(blocks[index++]);if(index<blocks.length&&blocks[index].from<range.to){const from=Math.min(range.from,blocks[index].from);let to=range.to;while(index<blocks.length&&blocks[index].from<range.to)to=Math.max(to,blocks[index++].to);result.push({from,to,kind:'list',text:text.slice(from,to)});}}while(index<blocks.length)result.push(blocks[index++]);return result;
+}
 
 /** The extra source lines belong to the projection only; canonical source never changes. */
 export function previewReplacementEnd(text:string,block:MarkdownBlock,selection:SelectionRange,composing=false):number {
@@ -77,9 +86,9 @@ function commentProjection(source:string):string {
   const tree=markdownLanguage.parser.parse(source);
   return source.replace(/<!--[\s\S]*?-->/g,(comment:string,position:number)=>literalAt(tree,position)&&tree.resolveInner(position,1).name!=='HTMLBlock'||escapedAt(source,position)?comment:`<span class="ot-live-comment">${escapeHtml(comment)}</span>`);
 }
-function readingHtml(source:string,references:string,settings:SettingsSnapshot,path:string|null,sourceFrom:number,projectComments=true):string {
+function readingHtml(source:string,references:string,settings:SettingsSnapshot,path:string|null,sourceFrom:number,projectComments=true,equationOffset=0):string {
   const input=source+(references?'\n\n'+references:''),environment:{footnotes?:{list?:{label?:string}[]}}={};
-  const template=document.createElement('template');template.innerHTML=renderMarkdown((projectComments?commentProjection(source):source)+(references?'\n\n'+references:''),settings,{path});
+  const template=document.createElement('template');template.innerHTML=renderMarkdown((projectComments?commentProjection(source):source)+(references?'\n\n'+references:''),settings,{path,equationOffset});
   template.content.querySelectorAll('.footnotes-sep,.footnotes').forEach(element=>element.remove());
   if(template.content.querySelector('.footnote-ref'))new MarkdownIt({html:true}).use(footnote).parse(input,environment);
   const occurrences=new Map<string,number>();template.content.querySelectorAll<HTMLAnchorElement>('.footnote-ref a').forEach(link=>{
@@ -92,7 +101,8 @@ function readingHtml(source:string,references:string,settings:SettingsSnapshot,p
 /** Live editor exposes hidden definitions/comments at their original source location. */
 export function renderLiveBlock(block:MarkdownBlock,text:string,settings:SettingsSnapshot,path:string|null):string {
   const allDefinitions=definitions(text),references=allDefinitions.map(item=>item.source).join('\n'),local=allDefinitions.filter(item=>item.from>=block.from&&item.to<=block.to);
-  if(!local.length)return readingHtml(block.text,references,settings,path,block.from,!['code','yaml','math'].includes(block.kind));
+  const equationOffset=displayEquationPositions(text,settings).filter(position=>position<block.from).length;
+  if(!local.length)return readingHtml(block.text,references,settings,path,block.from,!['code','yaml','math'].includes(block.kind),equationOffset);
   const container=document.createElement('div');let cursor=block.from;
   for(const definition of local){
     const preceding=text.slice(cursor,definition.from);if(preceding.trim())container.insertAdjacentHTML('beforeend',readingHtml(preceding,references,settings,path,cursor));

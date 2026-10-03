@@ -21,6 +21,8 @@ export class DocumentStore {
   private listeners = new Set<() => void>();
   constructor(session = createDocument()) { this.session = session; this.savedText = session.dirty ? '' : session.text; }
   getSnapshot = (): DocumentSession => this.session;
+  /** The persisted text baseline, independent of in-flight edits and view projections. */
+  getSavedText = (): string => this.savedText;
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => this.listeners.delete(listener); };
   private emit() { this.listeners.forEach(listener => listener()); }
   canUndo() { return this.undoStack.length > 0 && !this.session.readonly; }

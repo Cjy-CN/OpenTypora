@@ -1,0 +1,59 @@
+/* Shared reading styles also travel with HTML/PDF/image exports. */
+.workspace-shell.theme-github{--text:#333;--sidebar:#fafafa;--muted:#777;--accent:#4183c4;--accent-bg:#eaf2f8;--line:#e8e8e8;--document-font:"Open Sans","Clear Sans","Helvetica Neue",Helvetica,Arial,"Microsoft YaHei",sans-serif}
+.workspace-shell:not(.integrated-window)>.workspace-header{display:none}
+.workspace-menu-bar{height:26px;padding:0 6px;gap:0}
+.workspace-menu-root>button{padding:2px 7px;border-radius:0}
+.theme-github .workspace-document .ot-editor .cm-content{max-width:1000px;line-height:1.6}
+.theme-github .workspace-document .ot-editor .cm-scroller{line-height:1.6}
+.theme-github .workspace-document .ot-preview-block{padding:0;margin:0 4px 16px;white-space:normal}
+.theme-github .workspace-document .ot-preview-heading{margin-top:20px;margin-bottom:16px}
+.theme-github .workspace-document .ot-preview-yaml{margin-top:6px;margin-bottom:16px}
+.theme-github .workspace-document .ot-preview-toc{margin-top:28px;margin-bottom:52px}
+.theme-github .workspace-document .ot-preview-block h1,.theme-github .workspace-document .ot-h1{font-size:2.25em;line-height:1.2;font-weight:700}
+.theme-github .workspace-document .ot-preview-block h2,.theme-github .workspace-document .ot-h2{font-size:1.75em;line-height:1.225;font-weight:700}
+.theme-github .workspace-document .ot-preview-block h3,.theme-github .workspace-document .ot-h3{font-size:1.5em;font-weight:700}
+.theme-github .workspace-document .ot-preview-block h4,.theme-github .workspace-document .ot-h4{font-size:1.25em;font-weight:700}
+.theme-github .workspace-document .ot-preview-block :is(h1,h2){padding-bottom:0;border-bottom:1px solid #eee}
+.theme-github .workspace-document .ot-preview-block p{margin:0 0 16px}
+.theme-github .workspace-document .ot-preview-block>:last-child{margin-bottom:0}
+.theme-github .workspace-document .ot-preview-block pre,.opentypora-export pre{font-family:Consolas,"Liberation Mono",Menlo,monospace;font-size:.9em;line-height:1.4;background:#f8f8f8;border:0;border-radius:3px;padding:16px}
+.theme-github .workspace-document .ot-preview-block pre code{padding:0;background:transparent;font-size:inherit;line-height:inherit}
+.theme-github .workspace-document .ot-preview-block .frontmatter{color:#777;white-space:pre-wrap;font-size:14px}
+.theme-github .workspace-document .ot-preview-block .markdown-toc{padding:0;border:0;border-radius:0;gap:0;font-size:.9em;line-height:1.6}
+.theme-github .workspace-document .ot-preview-block .markdown-toc a{text-decoration:none}
+.markdown-toc a[data-level="1"]{font-weight:700}
+.theme-github .workspace-document .ot-preview-block blockquote{margin:0;padding:0 16px;color:#777;border-left:4px solid #dfe2e5;opacity:1}
+.theme-github .workspace-document .ot-preview-block .markdown-alert,.markdown-alert{background:transparent;color:inherit;border-left-width:4px;padding:2px 16px}
+.markdown-alert-title{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:0}
+.markdown-alert-title svg{width:16px;height:16px;flex:none;fill:currentColor}
+.markdown-alert-note .markdown-alert-title{color:#0969da}.markdown-alert-tip .markdown-alert-title{color:#1a7f37}.markdown-alert-important .markdown-alert-title{color:#8250df}.markdown-alert-warning .markdown-alert-title{color:#9a6700}.markdown-alert-caution .markdown-alert-title{color:#d1242f}
+.theme-github .workspace-document .ot-preview-block .markdown-alert-note{border-color:#0969da}.theme-github .workspace-document .ot-preview-block .markdown-alert-tip{border-color:#1a7f37}.theme-github .workspace-document .ot-preview-block .markdown-alert-important{border-color:#8250df}.theme-github .workspace-document .ot-preview-block .markdown-alert-warning{border-color:#9a6700}.theme-github .workspace-document .ot-preview-block .markdown-alert-caution{border-color:#d1242f}
+.theme-github .workspace-document .ot-preview-block table{min-width:0;display:table;width:100%;table-layout:fixed;border-collapse:collapse}
+.theme-github .workspace-document .ot-preview-block :is(th,td){padding:6px 13px;border:1px solid #ddd}
+.theme-github .workspace-document .ot-preview-block th{background:transparent;font-weight:700}
+.theme-github .workspace-document .ot-preview-block tr:nth-child(2n){background:#f8f8f8}
+.theme-github .workspace-document .ot-preview-block .ot-hidden-source{padding:0;border:0;background:transparent;line-height:1.6;font-family:inherit;font-size:.9em;color:#999}
+.theme-github .workspace-document .ot-preview-html .ot-hidden-source{color:#bba34b}
+.theme-github .workspace-document .ot-preview-block .footnote-ref{vertical-align:baseline;font-size:.75em;background:#f7f7f7;padding:2px 5px;border-radius:3px}
+.theme-github .workspace-document .ot-preview-block .footnote-ref a{color:#555;text-decoration:none}
+.theme-github .workspace-document .ot-preview-block .ot-reference-definition{color:#777;font-size:.9em;line-height:1.6}
+.theme-github .workspace-document .ot-preview-block .ot-reference-definition a{color:#777}
+.opentypora-export{font:16px/1.6 "Open Sans","Helvetica Neue",Arial,sans-serif;color:#333}
+.opentypora-export :is(h1,h2){border-bottom:1px solid #eee}.opentypora-export h1{font-size:2.25em}.opentypora-export h2{font-size:1.75em}.opentypora-export a{color:#4183c4}
+
+.ot-live-footnote-ref{vertical-align:baseline;font-size:.75em;background:var(--ot-code-bg);padding:2px 5px;border-radius:3px}.ot-live-footnote-ref a{color:inherit;text-decoration:none}.ot-live-reference{color:#777;font-size:.9em;line-height:1.6}.ot-live-reference a{color:#777}.ot-live-comment{color:#bba34b!important}.integrated-window .workspace-header{-webkit-app-region:drag}.integrated-window .workspace-toolbar{-webkit-app-region:no-drag;margin-right:130px}
+
+.ot-live-reference-body p{display:inline;margin:0!important}.ot-live-footnote-backlinks{white-space:nowrap}
+
+.opentypora-export.preserve-spaces :is(p,li){white-space:pre-wrap}
+
+.theme-github .workspace-document .ot-edit-heading:is(.ot-h1,.ot-h2){padding-bottom:0;line-height:1.2}.ot-live-mode .cm-line:has(>br:only-child){line-height:16px;min-height:16px}.ot-live-reference+.ot-live-reference{margin-top:16px}
+
+.ot-preview-block p>img:only-child,.ot-preview-html>img:only-of-type{display:block;margin:0 auto;vertical-align:top}.ot-missing-image{font:14px/1.6 Consolas,monospace;color:inherit}
+
+.theme-github .workspace-document .ot-preview-block pre.code-block{border:1px solid #e7e7e7;padding:8px 12px;font-size:14px}.theme-github .code-block .hljs-keyword{color:#770088}.theme-github .code-block .hljs-string{color:#aa1111}.theme-github .code-block .hljs-number{color:#116644}.theme-github .code-block .hljs-title{color:#00f}
+
+.ot-edit-heading,.ot-edit-heading span{text-decoration:none!important}
+.theme-github .workspace-document .ot-preview-block .markdown-alert{padding-top:0;padding-bottom:0}.theme-github .workspace-document .ot-preview-block .markdown-alert p:last-child{margin-bottom:0}
+
+.theme-github .workspace-document .ot-preview-list :is(ul,ol){margin-top:8px;margin-bottom:8px}.theme-github .workspace-document .ot-preview-list li>p{margin-bottom:8px}

@@ -24,6 +24,9 @@ export const COMMANDS: readonly CommandDefinition[] = [
   ...group('帮助','app',[['quickStart','快速开始'],['markdownHelp','Markdown 参考'],['pandocHelp','转换器帮助'],['themeHelp','自定义主题'],['imageHelp','图像帮助'],['recoveryHelp','恢复与版本控制'],['changelog','版本说明'],['credits','鸣谢'],['privacy','隐私说明'],['feedback','反馈'],['site','项目主页'],['update','检查更新'],['license','发行许可'],['about','关于'],['advanced','高级配置'],['reset','重置高级配置'],['windowsNewItem','资源管理器集成']])
 ];
 export function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
-  const parts = shortcut.toLowerCase().split('+'), key = parts.pop()!;
-  return event.ctrlKey === parts.includes('ctrl') && event.shiftKey === parts.includes('shift') && event.altKey === parts.includes('alt') && !event.metaKey && event.key.toLowerCase() === key;
+  if(!shortcut)return false;
+  const parts=(shortcut.endsWith('++')?shortcut.slice(0,-2):shortcut).toLowerCase().split('+'),key=shortcut.endsWith('++')?'+':parts.pop()!;
+  const physical:Record<string,string>={Equal:'=',Minus:'-',BracketLeft:'[',BracketRight:']',Backslash:'\\',Backquote:'`',Comma:',',Period:'.',Slash:'/'};
+  const code=physical[event.code]??(/^Digit[0-9]$/.test(event.code)?event.code.slice(-1):'');
+  return event.ctrlKey===parts.includes('ctrl')&&event.shiftKey===parts.includes('shift')&&event.altKey===parts.includes('alt')&&!event.metaKey&&(event.key.toLowerCase()===key||code===key);
 }

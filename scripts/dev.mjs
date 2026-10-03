@@ -7,6 +7,6 @@ await build({ entryPoints: ['electron/preload.ts'], bundle: true, platform: 'nod
 const server = await createServer({ server: { port: 5173, strictPort: true, host: '127.0.0.1' } });
 await server.listen();
 server.printUrls();
-const child = spawn(electron, ['.'], { stdio: 'inherit', env: { ...process.env, OPENTYPORA_DEV_URL: 'http://127.0.0.1:5173' } });
+const child = spawn(electron, ['.'], { windowsHide: true, stdio: 'inherit', env: { ...process.env, OPENTYPORA_DEV_URL: 'http://127.0.0.1:5173' } });
 child.on('exit', async code => { await server.close(); process.exit(code ?? 0); });
 process.on('SIGINT', () => child.kill());

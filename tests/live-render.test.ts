@@ -3,12 +3,14 @@ import {describe,expect,it} from 'vitest';
 import {markdownBlocks} from '../src/core/formatting';
 import {DEFAULT_SETTINGS} from '../src/shared/settings';
 import {renderMarkdown} from '../src/render/markdown';
-import {footnoteReferencePositions,liveFootnoteTarget,liveReferences,previewReplacementEnd,renderLiveBlock} from '../src/editor/live-render';
+import {footnoteReferencePositions,liveFootnoteTarget,liveReferences,previewReplacementEnd,renderLiveBlock,liveMarkdownBlocks} from '../src/editor/live-render';
 
 const settings={...DEFAULT_SETTINGS};
 function fragment(html:string){const template=document.createElement('template');template.innerHTML=html;return template.content;}
 
 describe('live whitespace projection',()=>{
+  it('keeps loose ordered-list continuations together using original CRLF positions',()=>{const text='# 前文🙂\r\n\r\n10. Parent\r\n  - Child\r\n\r\n  Continuation\r\n\r\n# End',loose={...settings,'markdown.strict':false},blocks=liveMarkdownBlocks(text,loose),list=blocks.find(block=>block.kind==='list')!;expect(list.text).toContain('Continuation');expect(text.slice(list.from,list.to)).toBe(list.text);const html=fragment(renderLiveBlock(list,text,loose,null));expect(html.querySelector('ol ul')).not.toBeNull();expect(html.querySelector('ol')?.textContent).toContain('Continuation');expect(text).toContain('\r\n');});
+  it('numbers display formulas consistently after a LaTeX-delimited block',()=>{const text='# Title\n\n\\[x\\]\n\n$$y$$\n\n```math\nz\n```',blocks=markdownBlocks(text),indices=blocks.flatMap(block=>[...fragment(renderLiveBlock(block,text,settings,null)).querySelectorAll<HTMLElement>('[data-display="true"]')].map(node=>node.dataset.equationIndex));expect(indices).toEqual(['1','2','3']);});
   for(const newline of ['\n','\r\n','\r'])it(`absorbs inactive blank separators with ${JSON.stringify(newline)} without changing source`,()=>{
     const text=`第一段 🙂${newline}${newline}  ${newline}\t${newline}第二段`,[first,second]=markdownBlocks(text),before=text;
     expect(previewReplacementEnd(text,first,{anchor:second.from,head:second.from})).toBe(second.from);
