@@ -35,7 +35,7 @@ function scopedCustomCss(css:string):string {
 }
 
 export function WorkspaceShell(props:WorkspaceShellProps){
- const {store,settingsStore,registry,context,bridge,editor,message,onCommand,onNavigate,viewModes}=props;
+ const {store,settingsStore,registry,context,bridge,editor,overlays,message,onCommand,onNavigate,viewModes}=props;
  const document=useSyncExternalStore(store.subscribe,store.getSnapshot),settings=useSyncExternalStore(settingsStore.subscribe,settingsStore.getSnapshot);
  const language=useResolvedUiLanguage(settings['general.language'],bridge);
  useEffect(()=>{window.document.documentElement.lang=language;},[language]);
@@ -153,6 +153,7 @@ export function WorkspaceShell(props:WorkspaceShellProps){
   {quickMode&&<Dialog title={quickMode==='recent'?'最近使用':'快速打开'} onClose={()=>setQuickMode(null)}><div className="quick-open"><input ref={quickInput} aria-label="搜索文件名或路径" placeholder="输入文件名或路径…" value={quickQuery} onChange={event=>{setQuickQuery(event.target.value);setQuickIndex(0);}} onKeyDown={event=>{if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();setQuickIndex(value=>Math.max(0,Math.min(quickItems.length-1,value+(event.key==='ArrowDown'?1:-1))));}else if(event.key==='Enter'&&quickItems[quickIndex]){event.preventDefault();openQuick(quickItems[quickIndex]);}}}/><div className="quick-results">{quickItems.map((item,index)=><button className={index===quickIndex?'selected':''} key={item.path} onMouseEnter={()=>setQuickIndex(index)} onClick={()=>openQuick(item)}><span className="file-symbol">{item.directory?'▱':'M'}</span><span><strong data-user-content>{displayName(item.path)}</strong><small data-user-content>{relativePath(item.path,root)}</small></span><kbd>↵</kbd></button>)}{!quickItems.length&&<p className="workspace-empty">{directoryLoading?'正在索引文件…':quickMode==='recent'?'没有最近记录':root?'没有匹配文件':'先打开文件夹以检索文档'}</p>}</div><div className="quick-hint">↑ ↓ 选择 · Enter 打开 · Esc 取消 {directoryLoading&&' · 正在索引'}</div>{!root&&quickMode==='files'&&<button onClick={()=>void chooseFolder().catch(error=>context.notify(String(error)))}>打开文件夹</button>}</div></Dialog>}
   {settingsView&&<SettingsDialog settingsStore={settingsStore} registry={registry} context={context} bridge={bridge} initialCategory={settingsView.category} advanced={settingsView.advanced} onCommand={onCommand} onClose={()=>setSettingsView(null)}/>}
   {help&&<HelpDialog id={help} bridge={bridge} store={store} notify={context.notify} onClose={()=>setHelp(null)}/>}
+  {overlays}
  </div>,language)}</UiLanguageContext.Provider>;
 }
 function SearchOptionButtons({options,onChange}:{options:SearchOptions;onChange:(options:SearchOptions)=>void}){const language=useUiLanguage();return localizeUi(<div className="search-options">{([['caseSensitive','Aa','区分大小写'],['wholeWord','W','全词匹配'],['regex','.*','正则表达式']] as const).map(([key,label,title])=><button key={key} aria-label={title} aria-pressed={options[key]} title={title} className={options[key]?'active':''} onClick={()=>onChange({...options,[key]:!options[key]})}>{label}</button>)}</div>,language);}
