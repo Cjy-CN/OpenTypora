@@ -13,10 +13,10 @@
 
 **Ready-to-run builds are available in [GitHub Releases](https://github.com/Cjy-CN/OpenTypora/releases/latest).** You do not need Node.js, npm or build tools to use them.
 
-| Version 0.1.2 · Windows x64 | Download and use |
+| Version 0.1.3 · Windows x64 | Download and use |
 | --- | --- |
-| **Installer — recommended** | [Download OpenTypora Setup](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.2/OpenTypora-Setup-0.1.2-x64.exe), run setup, then launch OpenTypora. Includes shortcuts, Markdown right-click integration and an uninstaller. |
-| **Portable** | [Download OpenTypora Portable](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.2/OpenTypora-Portable-0.1.2-x64.exe) and double-click to run without installation. Does not automatically register file-opening entries or an uninstaller. |
+| **Installer — recommended** | [Download OpenTypora Setup](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.3/OpenTypora-Setup-0.1.3-x64.exe), run setup, then launch OpenTypora. Includes shortcuts, Markdown right-click integration and an uninstaller. |
+| **Portable** | [Download OpenTypora Portable](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.3/OpenTypora-Portable-0.1.3-x64.exe) and double-click to run without installation. Does not automatically register file-opening entries or an uninstaller. |
 
 On the release page, expand **Assets** and choose an `.exe` file. **Source code (zip / tar.gz)** contains source files and is not a ready-to-run application. Current builds are unsigned.
 

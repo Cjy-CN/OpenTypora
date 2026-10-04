@@ -13,10 +13,10 @@
 
 **可以直接从 [GitHub Releases](https://github.com/Cjy-CN/OpenTypora/releases/latest) 下载使用，无需安装 Node.js、npm 或自行编译。**
 
-| 版本 0.1.2 · Windows 64 位 | 下载与使用方式 |
+| 版本 0.1.3 · Windows 64 位 | 下载与使用方式 |
 | --- | --- |
-| **安装版（推荐）** | [下载 OpenTypora 安装包](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.2/OpenTypora-Setup-0.1.2-x64.exe)，运行安装向导后启动。包含快捷方式、Markdown 右键打开与卸载程序。 |
-| **便携版** | [下载 OpenTypora 便携版](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.2/OpenTypora-Portable-0.1.2-x64.exe)，双击直接运行，无需安装；不会自动注册文件打开入口或卸载程序。 |
+| **安装版（推荐）** | [下载 OpenTypora 安装包](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.3/OpenTypora-Setup-0.1.3-x64.exe)，运行安装向导后启动。包含快捷方式、Markdown 右键打开与卸载程序。 |
+| **便携版** | [下载 OpenTypora 便携版](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.3/OpenTypora-Portable-0.1.3-x64.exe)，双击直接运行，无需安装；不会自动注册文件打开入口或卸载程序。 |
 
 也可在 Release 页面展开 **Assets** 下载 `.exe` 文件。**Source code（zip / tar.gz）** 是源码压缩包，不能直接作为应用运行。当前构建尚未配置生产代码签名。
 
