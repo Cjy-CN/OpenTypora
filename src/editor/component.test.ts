@@ -27,16 +27,17 @@ async function mount(text:string,overrides:Partial<EditorProps>={}){
 }
 describe('same-source editor integration',()=>{
   it('opens the actual README HTML header in reading view, with working modified links and intact source',async()=>{
-    const text=readFileSync('README.md','utf8'),editor=await mount(text),header=editor.host.querySelector('.ot-preview-html')!;
-    expect(header.querySelector('h1')?.textContent).toBe('OpenTypora');expect(header.querySelector('h1')?.getAttribute('align')).toBe('center');
-    expect(header.querySelectorAll('p[align="center"]')).toHaveLength(5);expect(header.querySelectorAll('img')).toHaveLength(4);
-    expect(header.querySelector('img[alt="OpenTypora icon"]')?.getAttribute('src')).toBe('public/app-icon.png');
+    const text=readFileSync('README.md','utf8'),editor=await mount(text),header=editor.host;
+    // The approved README separates its logo, title and navigation into individual HTML blocks.
+    expect(header.querySelector('.ot-preview-html h1')?.textContent).toBe('OpenTypora');expect(header.querySelector('.ot-preview-html h1')?.getAttribute('align')).toBe('center');
+    expect(header.querySelector('.ot-preview-html p[align="center"]')).not.toBeNull();
+    expect(header.querySelector('.ot-preview-html img[alt="OpenTypora"]')?.getAttribute('src')).toBe('public/app-icon.png');
     const opened=vi.fn();editor.view.dom.addEventListener('opentypora:open-link',opened);
     await act(async()=>header.querySelector('a[href="README.zh-CN.md"]')!.dispatchEvent(new MouseEvent('mousedown',{button:0,ctrlKey:true,bubbles:true,cancelable:true})));
     expect(opened).toHaveBeenCalledOnce();expect(editor.host.querySelector('.ot-preview-html')).not.toBeNull();
     expect(editor.store.getSnapshot().selection).toEqual({anchor:0,head:0});expect(editor.store.getSnapshot().text).toBe(text);expect(editor.store.getSnapshot().version).toBe(0);expect(editor.store.canUndo()).toBe(false);
     await act(async()=>{header.querySelector('h1')!.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true,cancelable:true}));document.dispatchEvent(new MouseEvent('mouseup',{button:0,bubbles:true}));});
-    expect(editor.host.querySelector('.ot-preview-html')).toBeNull();expect(editor.view.state.doc.toString()).toContain('<h1 align="center">OpenTypora</h1>');
+    expect(editor.host.querySelector('.ot-preview-html h1')).toBeNull();expect(editor.host.querySelector('.ot-preview-html img[alt="OpenTypora"]')).not.toBeNull();expect(editor.view.state.doc.toString()).toContain('<h1 align="center">OpenTypora</h1>');
     await act(async()=>editor.view.contentDOM.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true})));
     expect(editor.host.querySelector('.ot-preview-html h1')?.textContent).toBe('OpenTypora');expect(editor.store.getSnapshot().text).toBe(text);expect(editor.store.canUndo()).toBe(false);
   });

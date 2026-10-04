@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, protocol, net, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, protocol, net, dialog, type MenuItemConstructorOptions } from 'electron';
 import { join, extname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
@@ -9,14 +9,21 @@ import { Storage } from './services/storage';
 import { COMMANDS } from '../src/shared/command-catalog';
 import { checkMenuLayout } from './menu.smoke';
 import { checkSidebarWorkflow } from './sidebar.smoke';
-import { launchDocument } from '../src/shared/launch-document';
+import { claimApplicationInstance, launchDocumentPath } from './application-instance';
 const windows = new Set<BrowserWindow>();
 const allowedClose = new WeakSet<BrowserWindow>();
 protocol.registerSchemesAsPrivileged([{scheme:'opentypora-asset',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true}}]);
 const smokeTest = process.argv.includes('--smoke-test');
 const visualTest = process.argv.includes('--visual-test');
 if(smokeTest||visualTest)app.setPath('userData',join(tmpdir(),`opentypora-${visualTest?'visual':'smoke'}-${process.pid}`));
-const initialDocument=launchDocument(process.argv,app.isPackaged);
+const initialDocument=launchDocumentPath(process.argv,app.isPackaged,process.cwd());
+let markStartupReady!:()=>void;
+const startupReady=new Promise<void>(resolve=>{markStartupReady=resolve;});
+const primaryInstance=claimApplicationInstance({
+  app,documentPath:initialDocument,packaged:app.isPackaged,ready:startupReady,
+  openWindow:async path=>{const window=await createWindow(path);if(window.isVisible())window.focus();},
+  onError:error=>{console.error('Unable to open document window',error);dialog.showErrorBox('OpenTypora',`无法打开新的文档窗口：${toAppError(error).message}`);},
+});
 async function createWindow(documentPath?:string) {
   const settings=await new Storage(app.getPath('userData')).loadSettings().catch(()=>({} as Record<string,unknown>));
   const integrated=settings['appearance.windowStyle']==='integrated';
@@ -32,7 +39,7 @@ async function createWindow(documentPath?:string) {
   if(process.env.OPENTYPORA_DEV_URL){const url=new URL(process.env.OPENTYPORA_DEV_URL);if(documentPath)url.searchParams.set('document',documentPath);void window.loadURL(url.href);}else void window.loadFile(join(__dirname,'../dist/index.html'),{query});
   return window;
 }
-app.whenReady().then(async()=>{
+if(primaryInstance)app.whenReady().then(async()=>{
   protocol.handle('opentypora-asset',async request=>{
     const parsed=new URL(request.url);if(parsed.hostname!=='local'||parsed.search||parsed.hash)return new Response('Invalid asset',{status:400});
     const path=await resolveAuthorizedAsset(request.url);if(!path)return new Response('Asset not authorized',{status:403});
@@ -52,6 +59,7 @@ app.whenReady().then(async()=>{
   const menuEntries=(prefix:string):MenuItemConstructorOptions[]=>{const result:MenuItemConstructorOptions[]=[],seen=new Set<string>();for(const command of COMMANDS.filter(item=>item.menu===prefix||item.menu.startsWith(prefix+'/'))){const tail=command.menu.slice(prefix.length+1).split('/')[0];if(command.menu===prefix)result.push({label:command.label,click:()=>BrowserWindow.getFocusedWindow()?.webContents.send('opentypora:command',command.id)});else if(!seen.has(tail)){seen.add(tail);result.push({label:tail,submenu:menuEntries(prefix+'/'+tail)});}}return result;};
   const menu=Menu.buildFromTemplate(['文件','编辑','段落','格式','视图','主题','帮助'].map(label=>({label,submenu:menuEntries(label)})));
   Menu.setApplicationMenu(menu);const initial=await createWindow(initialDocument);
+  markStartupReady();
   if(smokeTest){
     const timeout=setTimeout(()=>{console.error('DESKTOP_SMOKE_TIMEOUT');app.exit(1);},30000);
     initial.webContents.once('did-finish-load',async()=>{

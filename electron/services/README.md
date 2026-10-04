@@ -2,6 +2,12 @@
 
 `createPlatform(window)` 完整提供 `BRIDGE_METHODS` 中24个处理器。主进程将原始结果包裹为 `Result`，异常保留错误码/诊断；服务不再次包裹Result。工厂使用WeakMap缓存，窗口关闭时清理监听与任务。`windowAction(new/close)` 的窗口创建/脏状态保护由main统一处理。
 
+## 应用实例与多窗口
+
+同一 `userData` 由一个主进程持有单实例锁。再次双击文件时，启动进程先按自己的工作目录解析文件路径，通过 `second-instance` 转交给已有主进程，再立即退出，避免初始化第二份 Chromium profile。主进程完成 IPC 和首个窗口初始化后，按收到的顺序为每个请求创建独立窗口；无文件参数时创建空白窗口。各窗口仍使用独立的文档、目录、撤销和保存状态。烟雾测试和其他隔离 profile 使用各自的实例锁。
+
+执行 `npm run build` 后运行 `npm run test:multi-window`，在隐藏窗口和临时目录中验证真实跨进程转交、启动期间连续打开、中文/空格/相对路径、空白窗口、独立 profile、编辑/撤销/保存隔离和关闭后重启，并输出后续文件加载时间。测试包装器只在内存中调整窗口可见性和后台节流，不向产品增加调试 IPC。
+
 ## 文件与配置
 
 - `files.ts`：严格UTF-8识别、UTF-8/UTF-16 BOM、明确编码读取、iconv编码的无损写入校验、保留原始混合换行、同路径保存串行化、指纹冲突及同目录原子替换。非法编码返回 `ENCODING_REQUIRED`；UI可调用 `systemAction('file.readEncoding',{path,encoding})` 选择编码。
