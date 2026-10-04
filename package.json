@@ -1,6 +1,6 @@
 {
   "name": "opentypora",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "license": "MIT",
   "description": "A local Markdown editor with a shared source document model",
