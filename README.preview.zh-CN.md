@@ -18,7 +18,7 @@
 
 <p align="center"><sub>Windows x64 · v0.1.2 · 免费开源 · MIT</sub></p>
 
-<p align="center"><img src="docs/images/readme-preview/workspace.png" alt="OpenTypora 工作区：文件侧栏、即时编辑、任务列表、表格、代码和公式" width="1100"></p>
+<p align="center"><img src="docs/images/readme-preview/details/writing.png" alt="正文局部：标题、加粗文字与可勾选的任务列表" width="840"></p>
 
 <p align="center"><sub>从一页笔记，到一份完整文档。</sub><br><br></p>
 
@@ -32,7 +32,7 @@
 | :---: | :---: | :---: |
 | 编辑正在处理的段落，直接看到格式。 | 用 `Ctrl+/` 查看 Markdown；共用原文和撤销历史。 | 专注模式淡化周边内容；打字机模式让当前行保持在视线附近。 |
 
-<p align="center"><img src="docs/images/readme-preview/source-outline.png" alt="源码模式与文档大纲，显示同一份 Markdown 的标题、任务列表、表格、代码和公式源码" width="1100"></p>
+<p align="center"><img src="docs/images/readme-preview/details/source.png" alt="对应正文的 Markdown 源码局部：标题标记、加粗语法与任务列表" width="840"></p>
 
 <p align="center"><code>/* 一份原文，两种编辑视图。 */</code><br><br></p>
 
@@ -44,7 +44,21 @@
 
 <p align="center">用 Markdown 组织内容，用代码围栏保存图表。<br>支持数学公式、Mermaid，以及传统 sequence 和 flow 图表；原文始终可以继续编辑。</p>
 
-<p align="center"><img src="docs/images/readme-preview/diagrams.png" alt="由 Markdown 中的 Mermaid 围栏渲染出的流程图与时序图" width="1100"></p>
+<h3 align="center">让信息井然有序</h3>
+
+<p align="center">几行文字，组成一张表格。任务、分类和引用各有位置。</p>
+
+<p align="center"><img src="docs/images/readme-preview/details/table.png" alt="表格与引用局部：表头、交替底色的表格行以及引用段落" width="840"></p>
+
+<h3 align="center">代码与公式，写在文档里</h3>
+
+<p align="center"><img src="docs/images/readme-preview/details/code-math.png" alt="代码与公式局部：TypeScript 语法高亮和排版后的定积分" width="840"></p>
+
+<h3 align="center">把过程画出来</h3>
+
+<p align="center"><img src="docs/images/readme-preview/details/flowchart.png" alt="Mermaid 流程图局部：从想法、草稿、判断到发布，以及返回修改的连线" width="840"></p>
+
+<p align="center"><img src="docs/images/readme-preview/details/sequence.png" alt="Mermaid 时序图局部：两个参与者之间打开、显示与保存文档的消息" width="480"></p>
 
 <p align="center"><code>/* 把过程画出来，把推导写清楚。 */</code><br><br></p>
 
@@ -58,6 +72,13 @@
 | :--- | :--- | :--- |
 | 打开 `.md` 文件，窗口自动关联所在目录。顶部按文件名过滤，也可以搜索目录内的内容。 | 大纲跟随标题生成，点击即可跳转；全文查找替换支持大小写、整词和正则表达式。 | 保存恢复草稿，检测外部文件变化；切换视图与主题继续使用同一份原文。 |
 
+<table>
+  <tr>
+    <td align="center" valign="top"><strong>文件与过滤搜索</strong><br><img src="docs/images/readme-preview/details/files.png" alt="文件侧栏局部：文件名过滤框、关联目录与同目录 Markdown 文件" width="280"></td>
+    <td align="center" valign="top"><strong>标题组成文档地图</strong><br><img src="docs/images/readme-preview/details/outline.png" alt="大纲侧栏局部：按照标题层级排列的文档导航项" width="280"></td>
+  </tr>
+</table>
+
 <p align="center">文档是你自己目录里的普通文件。<br>不需要把内容导入专有数据库，就能开始写作。<br><br></p>
 
 ---
@@ -66,7 +87,7 @@
 
 <p align="center">保留 Markdown，或交付一份适合阅读的成品。</p>
 
-<p align="center"><img src="docs/images/readme-preview/export.png" alt="文件菜单右侧展开的导出子菜单，包含 PDF、HTML、图片及转换器格式" width="1100"></p>
+<p align="center"><img src="docs/images/readme-preview/details/export-menu.png" alt="导出菜单局部：Export 入口右侧展开 PDF、HTML、图片和文档格式" width="560"></p>
 
 <p align="center"><strong>HTML · PDF · 图片</strong><br>内置桌面渲染器提供导出；可以按用途设置独立导出配置。</p>
 
@@ -78,12 +99,13 @@
 
 <p align="center">明亮、暖色，或深色。换一种阅读氛围，继续写同一份文档。</p>
 
-<table>
-  <tr>
-    <td align="center"><img src="docs/images/readme-preview/theme-newsprint.png" alt="Newsprint 主题：暖色纸张与衬线字体" width="540"><br><strong>Newsprint</strong><br><sub>暖色纸张，衬线文字。</sub></td>
-    <td align="center"><img src="docs/images/readme-preview/theme-night.png" alt="Night 主题：深色背景与浅色文字" width="540"><br><strong>Night</strong><br><sub>深色画布，清晰层次。</sub></td>
-  </tr>
-</table>
+<p align="center"><strong>Newsprint</strong> · 暖色纸张，衬线文字。</p>
+
+<p align="center"><img src="docs/images/readme-preview/details/newsprint.png" alt="Newsprint 正文局部：暖色背景、衬线标题与同一段文字" width="840"></p>
+
+<p align="center"><strong>Night</strong> · 深色画布，清晰层次。</p>
+
+<p align="center"><img src="docs/images/readme-preview/details/night.png" alt="Night 正文局部：深色背景、浅色标题与同一段文字" width="840"></p>
 
 <p align="center"><sub>内置 Github、Newsprint、Night、Pixyll、Whitey；支持自定义正文 CSS。<br>界面可跟随系统语言，或手动选择简体中文、英语。部分导出配置名称与错误提示仍为中文。</sub><br><br></p>
 

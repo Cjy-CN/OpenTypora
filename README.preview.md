@@ -18,7 +18,7 @@
 
 <p align="center"><sub>Windows x64 · v0.1.2 · Free & open source · MIT</sub></p>
 
-<p align="center"><img src="docs/images/readme-preview/workspace.png" alt="OpenTypora workspace with files, live editing, tasks, a table, code and an equation" width="1100"></p>
+<p align="center"><img src="docs/images/readme-preview/details/writing.png" alt="A close-up of the document: headings, bold text and a checkable task list" width="840"></p>
 
 <p align="center"><sub>From one small note to a finished document.</sub><br><br></p>
 
@@ -32,7 +32,7 @@
 | :---: | :---: | :---: |
 | Work on the current paragraph and see its formatting. | Use `Ctrl+/` for the source; both views share text and undo history. | Focus mode dims surrounding content. Typewriter mode keeps the active line near the center. |
 
-<p align="center"><img src="docs/images/readme-preview/source-outline.png" alt="Markdown source and outline for the same document, with headings, tasks, a table, code and equation source" width="1100"></p>
+<p align="center"><img src="docs/images/readme-preview/details/source.png" alt="The corresponding Markdown source: heading markers, bold syntax and task lists" width="840"></p>
 
 <p align="center"><code>/* ONE SOURCE. TWO EDITING VIEWS. */</code><br><br></p>
 
@@ -44,7 +44,21 @@
 
 <p align="center">Give your content structure with Markdown. Keep diagrams in code fences.<br>Render mathematics, Mermaid, and traditional sequence and flow diagrams while keeping the source editable.</p>
 
-<p align="center"><img src="docs/images/readme-preview/diagrams.png" alt="A flowchart and sequence diagram rendered from Mermaid fences in Markdown" width="1100"></p>
+<h3 align="center">Give information its place</h3>
+
+<p align="center">A few lines become a table. Tasks, categories and quotations each have room.</p>
+
+<p align="center"><img src="docs/images/readme-preview/details/table.png" alt="A close-up of a table and quotation, with column headings and alternating row colors" width="840"></p>
+
+<h3 align="center">Keep code and equations in the document</h3>
+
+<p align="center"><img src="docs/images/readme-preview/details/code-math.png" alt="A close-up of TypeScript syntax highlighting and a typeset definite integral" width="840"></p>
+
+<h3 align="center">Draw the process</h3>
+
+<p align="center"><img src="docs/images/readme-preview/details/flowchart.png" alt="A Mermaid flowchart from an idea through a draft and decision to publication, with a revision path" width="840"></p>
+
+<p align="center"><img src="docs/images/readme-preview/details/sequence.png" alt="A Mermaid sequence diagram showing open, display and save messages between two participants" width="480"></p>
 
 <p align="center"><code>/* DRAW THE PROCESS. EXPLAIN THE RESULT. */</code><br><br></p>
 
@@ -58,6 +72,13 @@
 | :--- | :--- | :--- |
 | Open an `.md` file and the window shows its folder. Filter filenames at the top, or search the folder's contents. | Navigate headings through the outline. Find and replace across the complete source with case, whole-word and regex options. | Save recovery drafts and detect external file changes. Views and themes continue to use the same source. |
 
+<table>
+  <tr>
+    <td align="center" valign="top"><strong>Files and filename filtering</strong><br><img src="docs/images/readme-preview/details/files.png" alt="A close-up of the file sidebar with its filename filter, associated folder and Markdown files" width="280"></td>
+    <td align="center" valign="top"><strong>A map made of headings</strong><br><img src="docs/images/readme-preview/details/outline.png" alt="A close-up of the outline sidebar with navigation entries arranged by heading level" width="280"></td>
+  </tr>
+</table>
+
 <p align="center">Documents remain ordinary files in folders you control.<br>Start writing without importing your content into a proprietary database.<br><br></p>
 
 ---
@@ -66,7 +87,7 @@
 
 <p align="center">Keep the Markdown, or deliver a document made for reading.</p>
 
-<p align="center"><img src="docs/images/readme-preview/export.png" alt="The Export submenu opens to the right of File, with PDF, HTML, image and converter formats" width="1100"></p>
+<p align="center"><img src="docs/images/readme-preview/details/export-menu.png" alt="A close-up of Export and its submenu on the right, with PDF, HTML, image and document formats" width="560"></p>
 
 <p align="center"><strong>HTML · PDF · Images</strong><br>Export with the built-in desktop renderer, and save independent profiles for different uses.</p>
 
@@ -78,12 +99,13 @@
 
 <p align="center">Light, warm or dark. Change the atmosphere and keep writing the same document.</p>
 
-<table>
-  <tr>
-    <td align="center"><img src="docs/images/readme-preview/theme-newsprint.png" alt="Newsprint theme with warm paper and serif text" width="540"><br><strong>Newsprint</strong><br><sub>Warm paper. Serif text.</sub></td>
-    <td align="center"><img src="docs/images/readme-preview/theme-night.png" alt="Night theme with a dark background and light text" width="540"><br><strong>Night</strong><br><sub>A dark canvas. Clear structure.</sub></td>
-  </tr>
-</table>
+<p align="center"><strong>Newsprint</strong> · Warm paper. Serif text.</p>
+
+<p align="center"><img src="docs/images/readme-preview/details/newsprint.png" alt="A close-up of Newsprint: warm paper, a serif heading and the same paragraph" width="840"></p>
+
+<p align="center"><strong>Night</strong> · A dark canvas. Clear structure.</p>
+
+<p align="center"><img src="docs/images/readme-preview/details/night.png" alt="A close-up of Night: a dark background, light heading and the same paragraph" width="840"></p>
 
 <p align="center"><sub>Built-in Github, Newsprint, Night, Pixyll and Whitey themes, plus custom document CSS.<br>The interface follows the system language or lets you select English or Simplified Chinese. Some export profile names and error messages remain in Chinese.</sub><br><br></p>
 
