@@ -29,7 +29,6 @@
 .markdown-alert-title svg{width:16px;height:16px;flex:none;fill:currentColor}
 .markdown-alert-note .markdown-alert-title{color:#0969da}.markdown-alert-tip .markdown-alert-title{color:#1a7f37}.markdown-alert-important .markdown-alert-title{color:#8250df}.markdown-alert-warning .markdown-alert-title{color:#9a6700}.markdown-alert-caution .markdown-alert-title{color:#d1242f}
 .theme-github .workspace-document .ot-preview-block .markdown-alert-note{border-color:#0969da}.theme-github .workspace-document .ot-preview-block .markdown-alert-tip{border-color:#1a7f37}.theme-github .workspace-document .ot-preview-block .markdown-alert-important{border-color:#8250df}.theme-github .workspace-document .ot-preview-block .markdown-alert-warning{border-color:#9a6700}.theme-github .workspace-document .ot-preview-block .markdown-alert-caution{border-color:#d1242f}
-.theme-github .workspace-document .ot-preview-block table{min-width:0;display:table;width:100%;table-layout:fixed;border-collapse:collapse}
 .theme-github .workspace-document .ot-preview-block :is(th,td){padding:6px 13px;border:1px solid #ddd}
 .theme-github .workspace-document .ot-preview-block th{background:transparent;font-weight:700}
 .theme-github .workspace-document .ot-preview-block tr:nth-child(2n){background:#f8f8f8}

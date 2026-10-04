@@ -6,16 +6,21 @@ import { MarkdownEditor } from '../../src/editor/MarkdownEditor';
 import { DocumentStore,createDocument } from '../../src/core/document';
 import { DEFAULT_SETTINGS } from '../../src/shared/settings';
 import type { EditorHandle } from '../../src/shared/components';
+import type { SettingsSnapshot } from '../../src/shared/settings';
 import { previewSelectionFrozen } from '../../src/editor/preview-pointer';
+import '../../src/styles.css';
 import '../../src/ui/workspace.css';
 import '../../src/render/document.css';
 const host=document.getElementById('root')!,root=createRoot(host),ref=createRef<EditorHandle>();
 host.className='workspace-document';document.body.style.display='block';document.body.style.setProperty('--workspace-font-size','18px');document.body.style.setProperty('--workspace-zoom','1');
 let store:DocumentStore;
+let settings:SettingsSnapshot,sourceMode=false;
+const render=()=>flushSync(()=>root.render(createElement(MarkdownEditor,{ref,store,settings,sourceMode,focusMode:false,typewriterMode:false})));
 const events:unknown[]=[];for(const type of ['mousedown','mousemove','mouseup','blur'])document.addEventListener(type,event=>{const mouse=event as MouseEvent;events.push({type,x:mouse.clientX,y:mouse.clientY,buttons:mouse.buttons});},true);
 const view=()=>EditorView.findFromDOM(host.querySelector('.cm-editor')!)!;
 const api={
-  load(text:string,sourceMode=false,width=640,theme='github'){store=new DocumentStore(createDocument(text));document.body.className=`workspace-shell theme-${theme}`;host.style.width=`${width}px`;flushSync(()=>root.render(createElement(MarkdownEditor,{ref,store,settings:{...DEFAULT_SETTINGS,'appearance.fontSize':18},sourceMode,focusMode:false,typewriterMode:false})));},
+  load(text:string,raw=false,width=640,theme='github',overrides:Partial<SettingsSnapshot>={}){store=new DocumentStore(createDocument(text));settings={...DEFAULT_SETTINGS,'appearance.fontSize':18,'appearance.theme':theme,...overrides};sourceMode=raw;document.body.className=`workspace-shell theme-${theme}`;host.style.width=`${width}px`;render();},
+  mode(raw:boolean){sourceMode=raw;render();},
   state(){const editor=view(),selection=editor.state.selection.main,coords=editor.coordsAtPos(selection.head,selection.assoc||1);return {...store.getSnapshot(),viewSelection:{anchor:selection.anchor,head:selection.head},caret:coords&&{x:coords.left,top:coords.top,bottom:coords.bottom},previews:host.querySelectorAll('.ot-preview-block').length,selecting:!!host.querySelector('.ot-selecting-preview'),frozen:editor.state.field(previewSelectionFrozen),events:events.slice(-12),errors:[...host.querySelectorAll('[role=alert]')].map(e=>e.textContent)};},
   point(needle:string,offset=0){
     const content=view().contentDOM,walker=document.createTreeWalker(content,NodeFilter.SHOW_TEXT),nodes:Node[]=[];while(walker.nextNode())nodes.push(walker.currentNode);
