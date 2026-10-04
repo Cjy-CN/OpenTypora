@@ -1,6 +1,6 @@
 {
   "name": "opentypora",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "license": "MIT",
   "description": "A local Markdown editor with a shared source document model",
@@ -14,6 +14,7 @@
     "test:editor": "node scripts/test-editor-interaction.mjs",
     "test:desktop": "electron . --smoke-test",
     "build": "npm run typecheck && vite build && node scripts/build-desktop.mjs",
+    "build:icons": "electron scripts/build-icons.cjs",
     "check": "npm run typecheck && npm test && npm run build",
     "start": "electron .",
     "package": "npm run build && electron-builder --win nsis --x64 --publish never",
@@ -82,7 +83,8 @@
           ]
         }
       ],
-      "signAndEditExecutable": false
+      "icon": "build/icon.ico",
+      "signExecutable": false
     },
     "nsis": {
       "oneClick": false,
@@ -90,6 +92,8 @@
       "allowElevation": false,
       "allowToChangeInstallationDirectory": true,
       "include": "build/installer.nsh",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
       "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,

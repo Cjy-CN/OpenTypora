@@ -29,7 +29,8 @@ describe('same-source editor integration',()=>{
   it('opens the actual README HTML header in reading view, with working modified links and intact source',async()=>{
     const text=readFileSync('README.md','utf8'),editor=await mount(text),header=editor.host.querySelector('.ot-preview-html')!;
     expect(header.querySelector('h1')?.textContent).toBe('OpenTypora');expect(header.querySelector('h1')?.getAttribute('align')).toBe('center');
-    expect(header.querySelectorAll('p[align="center"]')).toHaveLength(4);expect(header.querySelectorAll('img')).toHaveLength(3);
+    expect(header.querySelectorAll('p[align="center"]')).toHaveLength(5);expect(header.querySelectorAll('img')).toHaveLength(4);
+    expect(header.querySelector('img[alt="OpenTypora icon"]')?.getAttribute('src')).toBe('public/app-icon.png');
     const opened=vi.fn();editor.view.dom.addEventListener('opentypora:open-link',opened);
     await act(async()=>header.querySelector('a[href="README.zh-CN.md"]')!.dispatchEvent(new MouseEvent('mousedown',{button:0,ctrlKey:true,bubbles:true,cancelable:true})));
     expect(opened).toHaveBeenCalledOnce();expect(editor.host.querySelector('.ot-preview-html')).not.toBeNull();
@@ -72,7 +73,11 @@ describe('same-source editor integration',()=>{
   it('opens YAML in reading view and edits it as raw lines instead of a Setext heading',async()=>{const text='---\ntitle: 测试\ntags: [a, b]\n---\n\n# 正文',editor=await mount(text);expect(editor.host.querySelector('.ot-preview-yaml')).not.toBeNull();await act(async()=>editor.store.setSelection({anchor:5,head:5}));const yaml=editor.host.querySelectorAll('.ot-yaml-line');expect(yaml).toHaveLength(4);expect([...yaml].map(line=>line.textContent).join('\n')).toBe('---\ntitle: 测试\ntags: [a, b]\n---');expect(editor.host.querySelector('.ot-yaml-line.ot-edit-heading')).toBeNull();expect(editor.store.getSnapshot().text).toBe(text);});
   it('opens ordinary paragraphs in preview and freezes their DOM until a drag ends',async()=>{
     const text='第一段 **粗体**\r\n\r\n第二段 😀文字',editor=await mount(text),blocks=editor.host.querySelectorAll('.ot-preview-block');expect(blocks).toHaveLength(2);
-    await act(async()=>blocks[0].dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true,cancelable:true})));
+    // JSDOM has no caret geometry. Chromium tests cover focus and visible selection;
+    // this test checks source transactions and the frozen widget DOM only.
+    vi.spyOn(editor.view,'focus').mockImplementation(()=>{});
+    vi.spyOn(editor.view.scrollDOM,'getBoundingClientRect').mockReturnValue(new DOMRect(0,0,800,600));
+    await act(async()=>blocks[0].dispatchEvent(new MouseEvent('mousedown',{button:0,buttons:1,clientX:80,clientY:200,bubbles:true,cancelable:true})));
     await act(async()=>editor.view.dispatch({selection:{anchor:0,head:editor.view.state.doc.length},userEvent:'select.pointer'}));
     expect(editor.host.querySelector('.ot-preview-block')).toBe(blocks[0]);expect(editor.host.querySelectorAll('.ot-preview-block')).toHaveLength(2);
     await act(async()=>document.dispatchEvent(new MouseEvent('mouseup',{button:0,bubbles:true})));
