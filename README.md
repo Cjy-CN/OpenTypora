@@ -1,114 +1,135 @@
-<p align="center"><img src="public/app-icon.png" alt="OpenTypora icon" width="128" height="128"></p>
+<p align="center"><img src="public/app-icon.png" alt="OpenTypora" width="96" height="96"></p>
+
 <h1 align="center">OpenTypora</h1>
-<p align="center">A local Markdown workspace for writing, reading and publishing.</p>
+
+<p align="center">Make room for words. Turn an idea into a document.</p>
+
+<p align="center"><code>/* READ · WRITE · MARKDOWN */</code></p>
+
 <p align="center"><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
+
 <p align="center">
-  <img alt="Windows x64" src="https://img.shields.io/badge/platform-Windows%20x64-0078D4">
-  <img alt="Electron 44" src="https://img.shields.io/badge/Electron-44-47848F">
-  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white">
+  <a href="https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.3/OpenTypora-Setup-0.1.3-x64.exe"><strong>Download for Windows</strong></a>
+  &nbsp; · &nbsp;
+  <a href="https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.3/OpenTypora-Portable-0.1.3-x64.exe">Portable build</a>
+  &nbsp; · &nbsp;
+  <a href="https://github.com/Cjy-CN/OpenTypora/releases/latest">All downloads & release notes</a>
 </p>
-<p align="center"><a href="#download-for-windows">Download</a> · <a href="#features">Features</a> · <a href="#installation">Installation</a> · <a href="#development">Development</a> · <a href="docs/README.md">Documentation</a> · <a href="https://github.com/Cjy-CN/OpenTypora/issues">Issues</a></p>
 
-## Download for Windows
+<p align="center"><sub>Windows x64 · v0.1.3 · Free & open source · MIT</sub></p>
 
-**Ready-to-run builds are available in [GitHub Releases](https://github.com/Cjy-CN/OpenTypora/releases/latest).** You do not need Node.js, npm or build tools to use them.
+<p align="center"><img src="docs/images/readme/details/writing.png" alt="A close-up of the document: headings, bold text and a checkable task list" width="840"></p>
 
-| Version 0.1.3 · Windows x64 | Download and use |
-| --- | --- |
-| **Installer — recommended** | [Download OpenTypora Setup](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.3/OpenTypora-Setup-0.1.3-x64.exe), run setup, then launch OpenTypora. Includes shortcuts, Markdown right-click integration and an uninstaller. |
-| **Portable** | [Download OpenTypora Portable](https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.3/OpenTypora-Portable-0.1.3-x64.exe) and double-click to run without installation. Does not automatically register file-opening entries or an uninstaller. |
+<p align="center"><sub>From one small note to a finished document.</sub><br><br></p>
 
-On the release page, expand **Assets** and choose an `.exe` file. **Source code (zip / tar.gz)** contains source files and is not a ready-to-run application. Current builds are unsigned.
+---
 
-![OpenTypora live editor with file navigation, tables, code and mathematics](docs/images/workspace.png)
+<h2 align="center">Read and write on the same page</h2>
 
-OpenTypora brings your Markdown files, outline and editing tools into one desktop window. Live editing and source mode share the same text and undo history. Your documents remain ordinary files in folders you control.
+<p align="center">Open a file and read. Click a paragraph and keep writing.<br>Move away, and headings, lists and text styles return to their reading view.</p>
 
-The project is under active development. The [product requirements](docs/OpenTypora-产品需求文档.md) and [acceptance suite](docs/OpenTypora-验收用例.md) track the full intended scope; a menu entry does not certify every acceptance case.
+| Live editing | Markdown source | Room to focus |
+| :---: | :---: | :---: |
+| Work on the current paragraph and see its formatting. | Use `Ctrl+/` for the source; both views share text and undo history. | Focus mode dims surrounding content. Typewriter mode keeps the active line near the center. |
 
-## Features
+<p align="center"><img src="docs/images/readme/details/source.png" alt="The corresponding Markdown source: heading markers, bold syntax and task lists" width="840"></p>
 
-| Area | What you can do |
-| --- | --- |
-| Writing | Edit headings, emphasis, quotes, lists, tasks, tables, links, images and fenced code. Switch between live editing and source mode. |
-| Navigation | Browse files or an outline. Opening a Markdown file automatically shows its folder; filter filenames at the top of the File panel. |
-| Search | Find and replace in the complete source with case/word/regex options, or search across the current folder. |
-| Technical documents | Render mathematics, Mermaid diagrams, traditional sequence diagrams and flowcharts, with errors shown beside invalid source. |
-| Appearance | Choose built-in themes, custom document CSS, focus mode, typewriter mode and zoom. |
-| File safety | Save recovery drafts, detect external changes and keep source/undo history consistent across view changes. |
-| Publishing | Export HTML, rendered PDF and images; manage independent profiles for Pandoc and custom converters. |
-| Windows integration | Use the installed application's Markdown context-menu entry and Open with registration; uninstall through Windows Settings. |
-| Interface language | Follow the system language, or select Simplified Chinese or English. |
+<p align="center"><code>/* ONE SOURCE. TWO EDITING VIEWS. */</code><br><br></p>
 
-### One source, two editing views
+---
 
-Use live editing for everyday writing and source mode for precise Markdown changes. Switching views does not create a second document. File and outline navigation stay available beside the editor.
+<h2 align="center">Let plain text say more</h2>
 
-![OpenTypora source mode](docs/images/source-mode.png)
+<p align="center">Headings · Lists · Tasks · Tables · Images · Code · Equations · Diagrams</p>
 
-### Diagrams and mathematics
+<p align="center">Give your content structure with Markdown. Keep diagrams in code fences.<br>Render mathematics, Mermaid, and traditional sequence and flow diagrams while keeping the source editable.</p>
 
-Keep diagrams in fenced Markdown blocks. Mermaid, traditional sequence/flow diagrams and mathematical expressions are rendered locally. The Markdown source remains editable.
+<h3 align="center">Give information its place</h3>
 
-![Mermaid, sequence diagram and mathematics in OpenTypora](docs/images/diagrams.png)
+<p align="center">A few lines become a table. Tasks, categories and quotations each have room.</p>
 
-### Export profiles
+<p align="center"><img src="docs/images/readme/details/table.png" alt="A close-up of a table and quotation, with column headings and alternating row colors" width="840"></p>
 
-File → Export lists available output profiles in a submenu. Customize page size, margins, style and converter options in Preferences → Export.
+<h3 align="center">Keep code and equations in the document</h3>
 
-![OpenTypora export submenu](docs/images/export-menu.png)
+<p align="center"><img src="docs/images/readme/details/code-math.png" alt="A close-up of TypeScript syntax highlighting and a typeset definite integral" width="840"></p>
 
-HTML, rendered PDF and image exports use the built-in desktop renderer. Word, OpenDocument, RTF, Epub, LaTeX and other conversion formats require **Pandoc**; LaTeX PDF also requires a compatible **TeX engine**. Missing dependencies produce actionable errors.
+<h3 align="center">Draw the process</h3>
 
-## Installation
+<p align="center"><img src="docs/images/readme/details/flowchart.png" alt="A Mermaid flowchart from an idea through a draft and decision to publication, with a revision path" width="840"></p>
 
-### Windows installer
+<p align="center"><img src="docs/images/readme/details/sequence.png" alt="A Mermaid sequence diagram showing open, display and save messages between two participants" width="480"></p>
 
-Use `OpenTypora-Setup-<version>-x64.exe` from a published [release](https://github.com/Cjy-CN/OpenTypora/releases), or build it from source below. Release access follows repository permissions.
+<p align="center"><code>/* DRAW THE PROCESS. EXPLAIN THE RESULT. */</code><br><br></p>
 
-1. Run setup and choose an installation folder. It installs for the current Windows user.
-2. Launch OpenTypora from the Start menu, desktop shortcut or installation folder.
-3. Right-click an `.md` file and choose **Open with OpenTypora**. On Windows 11, it may appear under **Show more options**. OpenTypora is also registered as an **Open with** candidate.
+---
 
-Installation keeps your existing default Markdown editor. To make OpenTypora the default, select it through Windows **Open with → Choose another app**.
+<h2 align="center">Stay with the content</h2>
 
-**Uninstall:** open Windows **Settings → Apps → Installed apps**, select OpenTypora, and choose Uninstall. You can also run `Uninstall OpenTypora.exe` in the installation folder. Uninstall removes the application, shortcuts and its file-opening registrations; documents, settings and recovery data are retained.
+<p align="center">Your files, outline and search are beside your writing.</p>
 
-### Portable build
+| Files close at hand | A path through long documents | Changes you can follow |
+| :--- | :--- | :--- |
+| Open an `.md` file and the window shows its folder. Filter filenames at the top, or search the folder's contents. | Navigate headings through the outline. Find and replace across the complete source with case, whole-word and regex options. | Save recovery drafts and detect external file changes. Views and themes continue to use the same source. |
 
-`OpenTypora-Portable-<version>-x64.exe` runs without an installation wizard. It does not automatically add the installer context-menu entry or an uninstall program. Remove the portable EXE when no longer needed. Portable packaging does not imply that settings are stored beside the EXE.
+<table>
+  <tr>
+    <td align="center" valign="top"><strong>Files and filename filtering</strong><br><img src="docs/images/readme/details/files.png" alt="A close-up of the file sidebar with its filename filter, associated folder and Markdown files" width="280"></td>
+    <td align="center" valign="top"><strong>A map made of headings</strong><br><img src="docs/images/readme/details/outline.png" alt="A close-up of the outline sidebar with navigation entries arranged by heading level" width="280"></td>
+  </tr>
+</table>
 
-## Getting started
+<p align="center">Documents remain ordinary files in folders you control.<br>Start writing without importing your content into a proprietary database.<br><br></p>
 
-1. Open Markdown with **Ctrl+O**, or start a document with **Ctrl+N**.
-2. **File** shows the current folder. Filter filenames to find another document, or select **Outline** to navigate headings.
-3. Write and press **Ctrl+S** to save. Use **Ctrl+/** to inspect or edit source.
-4. Choose a theme, adjust preferences, or use **File → Export**.
+---
 
-| Shortcut | Action |
-| --- | --- |
-| Ctrl+N / Ctrl+Shift+N | New document / new window |
-| Ctrl+O / Ctrl+S / Ctrl+Shift+S | Open / save / save as |
-| Ctrl+P | Quick-open a document |
-| Ctrl+F / Ctrl+H | Find / replace |
-| Ctrl+Shift+F | Search file contents in the folder |
-| Ctrl+/ | Toggle source mode |
-| Ctrl+, | Preferences |
-| F8 / F9 | Focus mode / typewriter mode |
+<h2 align="center">Finish writing. Share the page.</h2>
 
-## Configuration
+<p align="center">Keep the Markdown, or deliver a document made for reading.</p>
 
-Preferences group options into Files, Editor, Images, Markdown, Export, Appearance and General. Search settings, reset them individually, or edit advanced JSON using the same validation rules.
+<p align="center"><img src="docs/images/readme/details/export-menu.png" alt="A close-up of Export and its submenu on the right, with PDF, HTML, image and document formats" width="560"></p>
 
-- **Language:** General → Interface language defaults to **Follow system** for new configurations. Chinese system languages use Simplified Chinese; other languages fall back to English. Existing manual selections are retained. Some export profile names and errors remain Chinese.
-- **Images:** choose no processing, copying into an assets folder or a configured upload adapter. Uploads require a supported service or executable.
-- **Themes:** select a built-in theme or provide CSS scoped to the document.
-- **Converters:** configure Pandoc/TeX executables and the export profiles you use.
-- **Recovery:** recovery drafts and automatic overwriting of original files are separate options.
+<p align="center"><strong>HTML · PDF · Images</strong><br>Export with the built-in desktop renderer, and save independent profiles for different uses.</p>
 
-## Development
+<p align="center"><sub>Word, OpenDocument, RTF, Epub, LaTeX and other conversion formats require Pandoc.<br>LaTeX PDF also requires a compatible TeX engine. Missing dependencies produce configuration guidance.</sub><br><br></p>
 
-Requirements: **Windows x64**, **Node.js 24** and npm. Native integration, installer and desktop checks run on Windows.
+---
+
+<h2 align="center">Choose your page</h2>
+
+<p align="center">Light, warm or dark. Change the atmosphere and keep writing the same document.</p>
+
+<p align="center"><strong>Newsprint</strong> · Warm paper. Serif text.</p>
+
+<p align="center"><img src="docs/images/readme/details/newsprint.png" alt="A close-up of Newsprint: warm paper, a serif heading and the same paragraph" width="840"></p>
+
+<p align="center"><strong>Night</strong> · A dark canvas. Clear structure.</p>
+
+<p align="center"><img src="docs/images/readme/details/night.png" alt="A close-up of Night: a dark background, light heading and the same paragraph" width="840"></p>
+
+<p align="center"><sub>Built-in Github, Newsprint, Night, Pixyll and Whitey themes, plus custom document CSS.<br>The interface follows the system language or lets you select English or Simplified Chinese. Some export profile names and error messages remain in Chinese.</sub><br><br></p>
+
+---
+
+<h2 align="center">Start with one file</h2>
+
+<p align="center"><a href="https://github.com/Cjy-CN/OpenTypora/releases/latest"><strong>Get a ready-to-run OpenTypora build →</strong></a></p>
+
+1. Download `OpenTypora-Setup-0.1.3-x64.exe` from **Assets** in Releases and run setup. No Node.js or build tools are needed.
+2. Launch from the Start menu, or right-click an `.md` file and choose **Open with OpenTypora**. On Windows 11, this may be under **Show more options**.
+3. Use `Ctrl+O` to open, `Ctrl+S` to save and `Ctrl+/` to switch to source mode.
+
+The installer provides shortcuts, a Markdown context-menu entry, Open with registration and an uninstaller. Uninstall through Windows **Settings → Apps**; documents, settings and recovery data are retained. Installation keeps your existing default Markdown editor.
+
+Double-click `OpenTypora-Portable-0.1.3-x64.exe` to run without setup. The portable build does not automatically register context-menu entries or an uninstaller. Portable packaging does not imply that settings are stored beside the EXE.
+
+<sub>Current builds target Windows x64 and are unsigned. Source code archives in Releases contain the source; download the matching EXE for the installer or portable application. SHA256SUMS.txt on the same release page contains file checksums.</sub>
+
+---
+
+## Build and contribute
+
+Development environment: Windows x64, Node.js 24 and npm.
 
 ```powershell
 git clone https://github.com/Cjy-CN/OpenTypora.git
@@ -117,46 +138,14 @@ npm ci
 npm run dev
 ```
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the desktop development application |
-| `npm run dev:web` | Run the browser UI without privileged desktop services |
-| `npm test` | Unit and integration tests |
-| `npm run test:editor` | Real Chromium cursor, drag selection and keyboard navigation tests in an isolated hidden window |
-| `npm run typecheck` | Check TypeScript types |
-| `npm run build` | Build renderer and Electron entries |
-| `npm run test:desktop` | Real desktop tests with hidden windows and isolated data |
-| `node electron/services/run-render-smoke.mjs` | Verify rendering and desktop services |
-| `npm run package` | Build the Windows x64 installer in `release/` |
-| `npm run package:portable` | Build the optional Windows x64 portable EXE |
-| `npm run test:installer` | After packaging, test install/uninstall in an isolated registry tree and temporary folder |
+Run checks relevant to your changes: `npm test`, `npm run typecheck` and `npm run build`. Desktop and real editor interaction checks are `npm run test:desktop` and `npm run test:editor`. Use `npm run package` for the installer and `npm run package:portable` for the portable build; after packaging, run `npm run test:installer` to verify installation and uninstallation.
 
-Production signing is not configured in this repository. Configure your signing identity for distribution. See [Windows packaging and integration](docs/Windows-安装与卸载.md) for implementation and validation details.
+Read [the collaboration instructions](AGENTS.md) and [engineering contracts](docs/工程基线与协作契约.md) before contributing. Report reproduction steps and a minimal Markdown example in [Issues](https://github.com/Cjy-CN/OpenTypora/issues).
 
-### Project structure
-
-```text
-src/core/          Document transactions, source positions and commands
-src/editor/        Live editing, source mode and editing operations
-src/render/        Markdown, mathematics and diagram rendering
-src/ui/            Workspace, menus, preferences and translations
-src/platform/      Desktop bridge consumers and file/session coordination
-src/shared/        Shared contracts, settings and command definitions
-electron/          Main process, preload and privileged services
-build/             Windows installer integration
-scripts/           Development, build and installer validation tools
-tests/             Cross-module regression tests
-docs/              Product, engineering and acceptance documentation
-```
-
-Document source is one Markdown string. Positions use UTF-16 offsets and edits go through `DocumentStore` transactions. Privileged operations go through `DesktopBridge`; document HTML has no Node access or arbitrary IPC surface.
-
-## Contributing
-
-Read [AGENTS.md](AGENTS.md), the [engineering contracts](docs/工程基线与协作契约.md) and relevant requirements before making changes. Include reproduction steps and a minimal Markdown sample in bug reports. Keep fixes focused, preserve source/undo behavior and run the checks relevant to the affected workflow.
-
-Use [Issues](https://github.com/Cjy-CN/OpenTypora/issues) for reproducible problems and proposals. Do not include credentials or private documents in reports or screenshots.
+The project is under active development. [Product requirements](docs/OpenTypora-产品需求文档.md) and [acceptance cases](docs/OpenTypora-验收用例.md) describe the full intended scope; this feature overview does not certify every acceptance case. See [the documentation](docs/README.md) for settings, dependencies and engineering details.
 
 ## License
 
-OpenTypora is licensed under the [MIT License](LICENSE). Third-party components retain their respective licenses; their notices are included in packaged builds.
+OpenTypora is available under the [MIT license](LICENSE). Third-party components retain their respective licenses.
+
+<p align="center"><a href="https://github.com/Cjy-CN/OpenTypora/releases/latest">Download</a> · <a href="docs/README.md">Documentation</a> · <a href="https://github.com/Cjy-CN/OpenTypora/issues">Issues</a> · <a href="LICENSE">MIT</a></p>

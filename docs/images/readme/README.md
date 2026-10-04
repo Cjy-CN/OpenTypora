@@ -1,14 +1,14 @@
-# README 草稿截图
+# README 功能截图
 
 这些图片来自 OpenTypora v0.1.2 的实际应用界面，拍摄于 2026-10-04。
 
 - 通过 silence-computer-use 独立会话拍摄，使用隔离配置与演示 Markdown 文件。
-- 完整窗口原图保留为取景依据；审阅草稿只引用 `details/` 中的功能局部截图。
+- 完整窗口原图保留为取景依据；正式 README 只引用 `details/` 中的功能局部截图。
 - 局部图通过 silence-computer-use 操作 Windows 原生画图工具裁切并另存，没有缩放、重绘、合成或修改应用 UI。只读逐像素比对确认 11 张图的 RGB 像素与原图对应区域完全一致。
 - 主题使用同一段文字展示 Newsprint 和 Night。菜单保留当前版本的部分中文导出配置名称；导出图仅展示子菜单顶部，完整格式列表见原图。
-- 原始 README 使用的截图位于上级目录；本目录仅供新 README 审阅草稿使用。
+- 上级目录保留早期截图；本目录中的局部截图用于正式中英文 README。
 
-对应草稿：根目录 `README.preview.zh-CN.md` 与 `README.preview.md`。
+对应文档：根目录 `README.zh-CN.md` 与 `README.md`。
 
 | 局部图 | 内容 | 像素尺寸 | 原图 |
 | :--- | :--- | :--- | :--- |
