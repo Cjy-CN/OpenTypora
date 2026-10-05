@@ -1,2 +1,9 @@
 import {parseOutline,statistics} from './model';
-self.onmessage=(event:MessageEvent<{kind:'outline'|'statistics';text:string;speed:number;strict?:boolean}>)=>{const {kind,text,speed,strict=true}=event.data;self.postMessage(kind==='outline'?parseOutline(text,strict):statistics(text,{anchor:0,head:0},speed));};
+import type {AnalysisRequest,AnalysisResponse} from './analysis-protocol';
+self.onmessage=(event:MessageEvent<AnalysisRequest>)=>{
+ const {id,kind,text,speed,strict=true}=event.data;
+ let response:AnalysisResponse;
+ try{response={id,ok:true,value:kind==='outline'?parseOutline(text,strict):statistics(text,{anchor:0,head:0},speed)};}
+ catch{response={id,ok:false,error:'后台文档分析失败，请重新打开文档或缩小文档。'};}
+ self.postMessage(response);
+};

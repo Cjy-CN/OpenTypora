@@ -16,6 +16,7 @@
     "test:dialogs": "node scripts/test-dialog-appearance.mjs",
     "test:desktop": "electron . --smoke-test",
     "test:multi-window": "node scripts/test-multi-window.mjs",
+    "test:analysis": "node scripts/test-document-analysis.mjs",
     "build": "npm run typecheck && vite build && node scripts/build-desktop.mjs",
     "build:icons": "electron scripts/build-icons.cjs",
     "check": "npm run typecheck && npm test && npm run build",

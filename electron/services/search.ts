@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { extname, join } from 'node:path';
-import { Worker } from 'node:worker_threads';
+import { RegexSearchWorker } from './search-worker';
 import type { DirectoryEntry, FileSearchMatch, SearchOptions } from '../../src/shared/contracts';
 import { absolutePath, object, serviceError, string } from './validation';
 import { readFile } from './files';
@@ -15,21 +15,14 @@ export function searchPattern(query:string,options:SearchOptions):RegExp{
   let pattern=options.regex?query:query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');if(options.wholeWord)pattern=`(?<![\\p{L}\\p{N}_])(?:${pattern})(?![\\p{L}\\p{N}_])`;
   try{return new RegExp(pattern,`gmu${options.caseSensitive?'':'i'}`);}catch{throw serviceError('INVALID_REGEX','无效的正则表达式');}
 }
-async function regexMatches(text:string,pattern:RegExp,signal?:AbortSignal):Promise<Omit<FileSearchMatch,'path'>[]>{
-  const code=`const {parentPort,workerData}=require('node:worker_threads');const text=workerData.text,pattern=new RegExp(workerData.source,workerData.flags),result=[];let match,scanned=0,line=1;while((match=pattern.exec(text))){line+=(text.slice(scanned,match.index).match(/\\n/g)||[]).length;scanned=match.index;const begin=text.lastIndexOf('\\n',match.index-1)+1,end=text.indexOf('\\n',match.index);result.push({line,excerpt:text.slice(begin,end<0?text.length:end).slice(0,500),from:match.index,to:match.index+match[0].length});if(result.length>=20000){parentPort.postMessage({error:'SEARCH_LIMIT'});return;}if(!match[0])pattern.lastIndex+=text.codePointAt(pattern.lastIndex)>0xffff?2:1;}parentPort.postMessage({matches:result});`;
-  return new Promise((resolve,reject)=>{const worker=new Worker(`(()=>{${code}})();`,{eval:true,workerData:{text,source:pattern.source,flags:pattern.flags}});let settled=false;
-    const done=(error?:Error,matches:Omit<FileSearchMatch,'path'>[]=[])=>{if(settled)return;settled=true;clearTimeout(timer);signal?.removeEventListener('abort',abort);void worker.terminate();error?reject(error):resolve(matches);};
-    const abort=()=>done(serviceError('CANCELLED','搜索已取消'));const timer=setTimeout(()=>done(serviceError('REGEX_TIMEOUT','此正则在单文件运行超过1秒，请简化表达式')),1000);signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();
-    worker.on('message',value=>value.error?done(serviceError(value.error,'命中超过20000项，请缩小范围')):done(undefined,value.matches));worker.on('error',error=>done(error));worker.on('exit',code=>{if(code!==0&&!settled)done(serviceError('SEARCH_WORKER','正则搜索工作线程异常退出'));});
-  });
-}
 export async function searchFiles(root:string,query:string,options:SearchOptions,signal?:AbortSignal):Promise<FileSearchMatch[]>{
   root=absolutePath(root);const pattern=searchPattern(query,options);if(!query)return[];const matches:FileSearchMatch[]=[];const failures:{path:string;error:string}[]=[];let files=0;
+  const regex=options.regex?new RegexSearchWorker():undefined;
   const walk=async(directory:string)=>{if(signal?.aborted)throw serviceError('CANCELLED','搜索已取消');let entries;try{entries=await fs.readdir(directory,{withFileTypes:true});}catch(error){failures.push({path:directory,error:(error as Error).message});return;}
     for(const entry of entries){if(signal?.aborted)throw serviceError('CANCELLED','搜索已取消');if(entry.isSymbolicLink()||['.git','node_modules'].includes(entry.name))continue;const path=join(directory,entry.name);if(entry.isDirectory()){await walk(path);continue;}if(!MARKDOWN_EXTENSIONS.has(extname(path).toLowerCase()))continue;
-      if(++files>50_000)throw serviceError('SEARCH_LIMIT','文件超过50000项，请缩小搜索目录');try{if((await fs.stat(path)).size>16_000_000){failures.push({path,error:'文件超过16MB搜索上限'});continue;}const file=await readFile(path);if(options.regex){const found=await regexMatches(file.text,pattern,signal);matches.push(...found.map(match=>({path,...match})));if(matches.length>=20_000)throw serviceError('SEARCH_LIMIT','命中超过20000项，请缩小范围');continue;}pattern.lastIndex=0;let match:RegExpExecArray|null;let scanned=0,line=1;
+      if(++files>50_000)throw serviceError('SEARCH_LIMIT','文件超过50000项，请缩小搜索目录');try{if((await fs.stat(path)).size>16_000_000){failures.push({path,error:'文件超过16MB搜索上限'});continue;}const file=await readFile(path);if(regex){const found=await regex.matches(file.text,pattern,signal);matches.push(...found.map(match=>({path,...match})));if(matches.length>=20_000)throw serviceError('SEARCH_LIMIT','命中超过20000项，请缩小范围');continue;}pattern.lastIndex=0;let match:RegExpExecArray|null;let scanned=0,line=1;
         while((match=pattern.exec(file.text))){line+=(file.text.slice(scanned,match.index).match(/\n/g)||[]).length;scanned=match.index;const begin=file.text.lastIndexOf('\n',match.index-1)+1,end=file.text.indexOf('\n',match.index);matches.push({path,line,excerpt:file.text.slice(begin,end<0?file.text.length:end).slice(0,500),from:match.index,to:match.index+match[0].length});if(matches.length>=20_000)throw serviceError('SEARCH_LIMIT','命中超过20000项，请缩小范围');if(!match[0])pattern.lastIndex+=file.text.codePointAt(pattern.lastIndex)!>0xffff?2:1;}
       }catch(error){if(['SEARCH_LIMIT','CANCELLED'].includes((error as {code?:string}).code||''))throw error;failures.push({path,error:(error as Error).message});}
     }
-  };await walk(root);if(failures.length)throw serviceError('SEARCH_PARTIAL','部分文件无法搜索，已完成的结果可查看',{matches,failures});return matches;
+  };try{await walk(root);if(signal?.aborted)throw serviceError('CANCELLED','搜索已取消');if(failures.length)throw serviceError('SEARCH_PARTIAL','部分文件无法搜索，已完成的结果可查看',{matches,failures});return matches;}finally{await regex?.dispose();}
 }
