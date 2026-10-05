@@ -12,7 +12,7 @@ app.whenReady().then(async()=>{
  const verify=async()=>{
   const cards=await run('sidebarTest.inspect()');assert.ok(cards.length>0&&cards.length<120,'List must remain virtualized');
   for(const card of cards){
-   assert.equal(card.card.height,113);
+   assert.equal(card.card.height,148);
    for(let i=0;i<card.children.length;i++){
     const child=card.children[i];
     assert.ok(child.height>=child.lineHeight-.5,`${card.name}: clipped ${child.tag}: ${JSON.stringify(child)}`);
@@ -38,12 +38,15 @@ app.whenReady().then(async()=>{
    await run('document.fonts.ready');await verify();
    const labels=language==='en'?['File tree','Document list','Search file contents','Refresh folder']:['树形视图','摘要列表','搜索文件内容','刷新目录'];
    assert.deepEqual(await run('[...document.querySelectorAll(".sidebar-section-heading>div button")].map(button=>[button.getAttribute("aria-label"),button.title])'),labels.map(label=>[label,label]));
-   for(const top of [40*113,100*113,0]){
+   const controls=await run(`(()=>{const sidebar=document.querySelector('.workspace-sidebar').getBoundingClientRect();const buttons=[...document.querySelectorAll('.sidebar-view-actions button,.sidebar-footer button')].map(button=>{const r=button.getBoundingClientRect();return {width:r.width,height:r.height,left:r.left,right:r.right,icon:getComputedStyle(button.querySelector('svg')).width};});const status=document.querySelector('.workspace-status-bar');return {sidebar:{left:sidebar.left,right:sidebar.right},buttons,folderFont:getComputedStyle(document.querySelector('.root-directory')).fontSize,statusHeight:status.getBoundingClientRect().height,statusFont:getComputedStyle(status).fontSize,statusButtons:[...status.querySelectorAll('button')].map(button=>button.getBoundingClientRect().height),filterHeight:document.querySelector('.sidebar-file-filter input').getBoundingClientRect().height}})()`);
+   assert(controls.buttons.every(button=>button.width>=32&&button.height>=32&&button.left>=controls.sidebar.left&&button.right<=controls.sidebar.right),'Sidebar controls must remain usable and inside the sidebar');
+   assert(controls.buttons.every(button=>button.icon==='18px'));assert.equal(controls.folderFont,'14px');assert.equal(controls.statusHeight,36);assert.equal(controls.statusFont,'12px');assert(controls.statusButtons.every(height=>height>=32));assert.equal(controls.filterHeight,40);
+   for(const top of [40*148,100*148,0]){
     await run(`sidebarTest.scroll(${top})`);await wait(`document.querySelector('.virtual-file-list').scrollTop===${top}`);
-    await wait(`Number(document.querySelector('.virtual-summary-row').id.replace('summary-row-',''))===${Math.max(0,Math.floor(top/113)-8)}`);await verify();
+    await wait(`Number(document.querySelector('.virtual-summary-row').id.replace('summary-row-',''))===${Math.max(0,Math.floor(top/148)-8)}`);await verify();
    }
    await run('document.querySelector(".file-summary").click()');assert.equal(await run('sidebarTest.opened()'),await run('document.querySelector(".file-summary").title'));
   }
-  console.log(JSON.stringify({sidebarLayout:true,themes:6,languages:2,widths:3,cases,longNames:true,fullTextLines:true,noOverlap:true,noDuplicateRootFilename:true,localizedTooltips:true,virtualScroll:true,sourceUnchanged:true}));clearTimeout(timeout);app.exit(0);
+  console.log(JSON.stringify({sidebarLayout:true,scheme:'A',themes:6,languages:2,widths:3,cases,longNames:true,fullTextLines:true,noOverlap:true,noDuplicateRootFilename:true,localizedTooltips:true,virtualScroll:true,minimumButtonSize:32,statusBarHeight:36,sourceUnchanged:true}));clearTimeout(timeout);app.exit(0);
  }catch(error){console.error(error);console.error(JSON.stringify(await run('sidebarTest.inspect()').catch(()=>null)));clearTimeout(timeout);app.exit(1);}
 });

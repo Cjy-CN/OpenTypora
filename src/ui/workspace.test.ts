@@ -25,6 +25,21 @@ async function mount(text='# Heading\nhello HELLO\n',bridge?:DesktopBridge,langu
 function input(label:string){return container.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!;}
 async function enter(element:HTMLInputElement,value:string){await act(async()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(element,value);element.dispatchEvent(new Event('input',{bubbles:true}));});}
 describe('workspace integration',()=>{
+ it('routes scheme A sidebar and status controls to the existing commands with localized labels',async()=>{
+  const {store,settingsStore,registry,context}=await mount('unchanged');await act(()=>store.patchMetadata({path:'C:/notes/test.md'}));
+  const calls:string[]=[];
+  for(const id of ['file.new','view.source','file.properties'])await act(()=>registry.register(id,()=>{calls.push(id);}));
+  for(const label of ['新建文档','切换即时编辑与源码模式','文件属性'])await act(()=>container.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`)!.click());
+  expect(calls).toEqual(['file.new','view.source','file.properties']);
+  await act(()=>registry.execute('view.outline',context));expect(container.querySelector('.sidebar-new-document')).toBeTruthy();expect(container.querySelector('.sidebar-quick-open')).toBeTruthy();
+  await act(()=>container.querySelector<HTMLButtonElement>('[aria-label="字数统计"]')!.click());expect(container.querySelector('[role=dialog]')).toBeTruthy();
+  await act(()=>container.querySelector<HTMLButtonElement>('[aria-label="关闭对话框"]')!.click());
+  await act(()=>container.querySelector<HTMLButtonElement>('[aria-label="快速打开"]')!.click());expect(container.querySelector('.quick-open')).toBeTruthy();
+  await act(()=>container.querySelector<HTMLButtonElement>('[aria-label="关闭对话框"]')!.click());await act(()=>settingsStore.set('general.language','en'));
+  expect(container.querySelector('[aria-label="New document"]')?.getAttribute('title')).toBe('New document');
+  expect(container.querySelector('[aria-label="Toggle live editing and source mode"]')?.getAttribute('title')).toBe('Toggle live editing and source mode');
+  expect(container.querySelector('.workspace-status-bar')?.textContent).toContain('Live editing');expect(store.getSnapshot().text).toBe('unchanged');expect(store.getSnapshot().version).toBe(0);
+ });
  it('places Files before Outline and integrates content search into the File panel',async()=>{
   const {registry,context,store}=await mount();const initial=store.getSnapshot();
   expect([...container.querySelectorAll('.sidebar-tabs button')].map(button=>button.textContent)).toEqual(['文件','大纲']);

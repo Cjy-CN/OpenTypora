@@ -21,6 +21,7 @@ const bridge={
 } as unknown as DesktopBridge;
 store.patchMetadata({rootDirectory:rootPath,path:files[0].path});
 registry.register('file.open',(_context,path)=>{opened=path as string;});
+registry.register('file.new',()=>{});registry.register('view.source',()=>{});registry.register('file.properties',()=>{});
 const context={document:store,notify:()=>{}};
 createRoot(document.getElementById('root')!).render(<WorkspaceShell store={store} settingsStore={settingsStore} registry={registry} context={context} bridge={bridge} editor={<textarea aria-label="test editor"/>} message="" onCommand={(id,arg)=>{void registry.execute(id,context,arg);}} onNavigate={()=>{}}/>);
 Object.assign(window,{sidebarTest:{

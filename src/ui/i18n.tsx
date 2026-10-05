@@ -33,6 +33,7 @@ const SETTINGS_EN:Record<string,string>={
  'general.language':'Interface language','general.autoUpdate':'Automatically check for updates','general.developmentUpdates':'Include development releases','general.debug':'Enable diagnostics','general.telemetry':'Send anonymous usage data','general.telemetryEndpoint':'Usage data receiver endpoint','general.serviceSource':'Release update source','general.shortcuts':'Custom keyboard shortcuts'
 };
 const EN:Record<string,string>={
+ '新建文档':'New document','即时编辑':'Live editing','源码模式':'Source mode','切换即时编辑与源码模式':'Toggle live editing and source mode',
  ...Object.fromEntries(COMMANDS.map(command=>[command.label,COMMAND_EN[command.id]??humanize(command.id)])),...Object.fromEntries(Object.entries(SETTING_LABELS).map(([key,label])=>[label,SETTINGS_EN[key]??humanize(key)])),
  '文件':'File','编辑':'Edit','段落':'Paragraph','格式':'Format','视图':'View','主题':'Themes','帮助':'Help','编辑器':'Editor','图像':'Images','导出':'Export','外观':'Appearance','通用':'General','大纲':'Outline','搜索':'Search','高级配置':'Advanced configuration','选择':'Selection','范围':'Ranges','文本':'Text','代码':'Code','公式':'Math','警告框':'Alerts','表格':'Table','源码':'Source','退出源码':'Exit source mode','〈/〉 源码':'〈/〉 Source','专注':'Focus','打字机':'Typewriter',
  '导出格式':'Export formats','没有导出配置，请在偏好设置中添加。':'No export profiles. Add one in Preferences.',
