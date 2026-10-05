@@ -9,14 +9,14 @@
 <p align="center"><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
 
 <p align="center">
-  <a href="https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.5/OpenTypora-Setup-0.1.5-x64.exe"><strong>Download for Windows</strong></a>
+  <a href="https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.6/OpenTypora-Setup-0.1.6-x64.exe"><strong>Download for Windows</strong></a>
   &nbsp; · &nbsp;
-  <a href="https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.5/OpenTypora-Portable-0.1.5-x64.exe">Portable build</a>
+  <a href="https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.6/OpenTypora-Portable-0.1.6-x64.exe">Portable build</a>
   &nbsp; · &nbsp;
   <a href="https://github.com/Cjy-CN/OpenTypora/releases/latest">All downloads & release notes</a>
 </p>
 
-<p align="center"><sub>Windows x64 · v0.1.5 · Free & open source · MIT</sub></p>
+<p align="center"><sub>Windows x64 · v0.1.6 · Free & open source · MIT</sub></p>
 
 <p align="center"><img src="docs/images/readme/details/writing.png" alt="A close-up of the document: headings, bold text and a checkable task list" width="840"></p>
 
@@ -115,13 +115,13 @@
 
 <p align="center"><a href="https://github.com/Cjy-CN/OpenTypora/releases/latest"><strong>Get a ready-to-run OpenTypora build →</strong></a></p>
 
-1. Download `OpenTypora-Setup-0.1.5-x64.exe` from **Assets** in Releases and run setup. No Node.js or build tools are needed.
+1. Download `OpenTypora-Setup-0.1.6-x64.exe` from **Assets** in Releases and run setup. No Node.js or build tools are needed.
 2. Launch from the Start menu, or right-click an `.md` file and choose **Open with OpenTypora**. On Windows 11, this may be under **Show more options**.
 3. Use `Ctrl+O` to open, `Ctrl+S` to save and `Ctrl+/` to switch to source mode.
 
 The installer provides shortcuts, a Markdown context-menu entry, Open with registration and an uninstaller. Uninstall through Windows **Settings → Apps**; documents, settings and recovery data are retained. Installation keeps your existing default Markdown editor.
 
-Double-click `OpenTypora-Portable-0.1.5-x64.exe` to run without setup. The portable build does not automatically register context-menu entries or an uninstaller. Portable packaging does not imply that settings are stored beside the EXE.
+Double-click `OpenTypora-Portable-0.1.6-x64.exe` to run without setup. The portable build does not automatically register context-menu entries or an uninstaller. Portable packaging does not imply that settings are stored beside the EXE.
 
 <sub>Current builds target Windows x64 and are unsigned. Source code archives in Releases contain the source; download the matching EXE for the installer or portable application. SHA256SUMS.txt on the same release page contains file checksums.</sub>
 

@@ -9,14 +9,14 @@
 <p align="center"><strong>简体中文</strong> · <a href="README.md">English</a></p>
 
 <p align="center">
-  <a href="https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.5/OpenTypora-Setup-0.1.5-x64.exe"><strong>下载 Windows 安装版</strong></a>
+  <a href="https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.6/OpenTypora-Setup-0.1.6-x64.exe"><strong>下载 Windows 安装版</strong></a>
   &nbsp; · &nbsp;
-  <a href="https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.5/OpenTypora-Portable-0.1.5-x64.exe">下载便携版</a>
+  <a href="https://github.com/Cjy-CN/OpenTypora/releases/download/v0.1.6/OpenTypora-Portable-0.1.6-x64.exe">下载便携版</a>
   &nbsp; · &nbsp;
   <a href="https://github.com/Cjy-CN/OpenTypora/releases/latest">所有下载与更新说明</a>
 </p>
 
-<p align="center"><sub>Windows x64 · v0.1.5 · 免费开源 · MIT</sub></p>
+<p align="center"><sub>Windows x64 · v0.1.6 · 免费开源 · MIT</sub></p>
 
 <p align="center"><img src="docs/images/readme/details/writing.png" alt="正文局部：标题、加粗文字与可勾选的任务列表" width="840"></p>
 
@@ -115,13 +115,13 @@
 
 <p align="center"><a href="https://github.com/Cjy-CN/OpenTypora/releases/latest"><strong>获取已打包的 OpenTypora →</strong></a></p>
 
-1. 在 Releases 的 **Assets** 中下载 `OpenTypora-Setup-0.1.5-x64.exe`，运行安装程序。无需 Node.js 或构建工具。
+1. 在 Releases 的 **Assets** 中下载 `OpenTypora-Setup-0.1.6-x64.exe`，运行安装程序。无需 Node.js 或构建工具。
 2. 从开始菜单启动，或右键 `.md` 文件选择 **使用 OpenTypora 打开**。Windows 11 上可能位于“显示更多选项”。
 3. 按 `Ctrl+O` 打开文件、`Ctrl+S` 保存、`Ctrl+/` 切换源码模式。
 
 安装版提供快捷方式、Markdown 右键打开入口、“打开方式”注册和卸载程序。卸载可在 Windows **设置 → 应用** 中完成；文档、设置与恢复数据保留。安装不会自动替换现有的 Markdown 默认编辑器。
 
-便携版 `OpenTypora-Portable-0.1.5-x64.exe` 双击即可运行，不自动注册右键入口或卸载程序。便携打包不表示设置一定保存在 EXE 旁边。
+便携版 `OpenTypora-Portable-0.1.6-x64.exe` 双击即可运行，不自动注册右键入口或卸载程序。便携打包不表示设置一定保存在 EXE 旁边。
 
 <sub>当前提供 Windows x64 构建，产物尚未签名。Releases 中的 Source code 是源码压缩包；安装版和便携版请下载对应的 EXE。文件校验值见同一发布页的 SHA256SUMS.txt。</sub>
 
