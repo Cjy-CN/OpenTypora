@@ -27,7 +27,7 @@ const primaryInstance=claimApplicationInstance({
 async function createWindow(documentPath?:string) {
   const settings=await new Storage(app.getPath('userData')).loadSettings().catch(()=>({} as Record<string,unknown>));
   const integrated=settings['appearance.windowStyle']==='integrated';
-  const window=new BrowserWindow({width:1280,height:900,minWidth:720,minHeight:480,show:!smokeTest,title:'OpenTypora',icon:join(__dirname,process.env.OPENTYPORA_DEV_URL?'../public/app-icon.png':'../dist/app-icon.png'),...(integrated?{titleBarStyle:'hidden' as const,titleBarOverlay:{color:'#ffffff',symbolColor:'#333333',height:48}}:{}),backgroundColor:'#ffffff',webPreferences:{preload:join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+  const window=new BrowserWindow({width:1280,height:900,minWidth:720,minHeight:480,show:!smokeTest,title:'OpenTypora',icon:join(__dirname,process.env.OPENTYPORA_DEV_URL?'../public/app-icon.png':'../dist/app-icon.png'),...(integrated?{titleBarStyle:'hidden' as const,titleBarOverlay:{color:'#ffffff',symbolColor:'#333333',height:48}}:{}),backgroundColor:'#ffffff',webPreferences:{preload:join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:!smokeTest}});
   windows.add(window);window.on('closed',()=>windows.delete(window));
   window.setMenuBarVisibility(false);window.setAutoHideMenuBar(true);
   if(visualTest)window.setContentSize(1697,1088);

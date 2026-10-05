@@ -62,5 +62,5 @@ const Module = require('node:module');
 const main = new Module(mainPath, module);
 main.filename = mainPath;
 main.paths = Module._nodeModulePaths(path.dirname(mainPath));
-main._compile(source.replace('show: !smokeTest', 'show: false').replace('webPreferences: { preload:', 'webPreferences: { backgroundThrottling: false, preload:'), mainPath);
+main._compile(source.replace('show: !smokeTest', 'show: false').replace('webPreferences: { preload:', 'webPreferences: { backgroundThrottling: false, preload:').replace('backgroundThrottling: !smokeTest', 'backgroundThrottling: false'), mainPath);
 report('main-loaded', { primary: app.hasSingleInstanceLock() });
