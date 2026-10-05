@@ -14,6 +14,7 @@
     "test:editor": "node scripts/test-editor-interaction.mjs",
     "test:themes": "node scripts/test-theme-layout.mjs",
     "test:dialogs": "node scripts/test-dialog-appearance.mjs",
+    "test:sidebar": "node scripts/test-sidebar-layout.mjs",
     "test:desktop": "electron . --smoke-test",
     "test:multi-window": "node scripts/test-multi-window.mjs",
     "test:analysis": "node scripts/test-document-analysis.mjs",
